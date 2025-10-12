@@ -31,7 +31,9 @@ target_include_directories(glad PUBLIC ${PROJECT_SOURCE_DIR}/lib/glad/include)
 # build
 file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.cc src/*.h)
 add_executable(${PROJECT} ${SOURCES})
+
 target_link_libraries(${PROJECT} PRIVATE glm::glm glfw glad)
+target_include_directories(${PROJECT} PRIVATE ${PROJECT_SOURCE_DIR}/lib/stb)
 
 set_property(TARGET ${PROJECT} PROPERTY CXX_STANDARD 23)
 set_property(TARGET ${PROJECT} PROPERTY CXX_STANDARD_REQUIRED TRUE)
