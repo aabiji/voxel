@@ -1,11 +1,12 @@
-#include <format>
-#include <iostream>
 #include <stdexcept>
 #include <string>
-#include <vector>
-#include <fstream>
+#include <stdio.h>
 
-// TODO: textures!
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+#include "shader.h"
+
 // TODO: control the camera
 // TODO: add an EBO to our cube vertices (how should we draw cubes btw??)
 // TODO: refactor (really think about it)
@@ -19,9 +20,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
-using std::string;
-using std::vector;
 
 const float cube_vertices[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -67,104 +65,18 @@ const float cube_vertices[] = {
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
-enum LogType { ERROR, WARNING, INFO };
-void log(string tag, LogType type, string message)
+enum log_type { ERROR, WARNING, INFO };
+void log(const char* tag, log_type type, const char* message)
 {
     // fatal = red, warning = yellow, info = cyan
     int color = type == ERROR ? 31 : type == WARNING ? 33 : 36;
-    string reset = "\u001b[0m";
-    std::cout << "\x1b[1;" << color << "m";
-    std::cout << "[" << tag << "]: " << message << reset << "\n";
-}
-
-class Shader
-{
-public:
-    void use() { glUseProgram(m_program); }
-    void cleanup() { glDeleteProgram(m_program); }
-
-    // all calls to add must be followed by assemble
-    void assemble();
-    void add(unsigned int type, string path);
-
-    // set uniforms
-    void set_int(const char* name, int value) const;
-    void set_matrix(const char* name, glm::mat4& value) const;
-private:
-    unsigned int m_program;
-    vector<unsigned int> m_shaders;
-};
-
-void Shader::set_int(const char* name, int value) const
-{
-    glUniform1i(glGetUniformLocation(m_program, name), value);
-}
-
-void Shader::set_matrix(const char* name, glm::mat4& value) const
-{
-    int location = glGetUniformLocation(m_program, name);
-    glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
-}
-
-void Shader::add(unsigned int type, string path)
-{
-    // read the file
-    std::ifstream file(path);
-    if (!file.is_open() || !file.good())
-        throw std::runtime_error(std::format("Failed to open {}", path));
-
-    string source = "", line = "";
-    while (std::getline(file, line))
-        source += line + '\n'; 
-    file.close();
-
-    // compile the shader
-    const char* str = source.c_str();
-    unsigned int shader = glCreateShader(type);
-    glShaderSource(shader, 1, &str, nullptr);
-    glCompileShader(shader);
-
-    // check for errors
-    int success;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        char info[512];
-        glGetShaderInfoLog(shader, 512, nullptr, info);
-        throw std::runtime_error(string(info));
-    }
-
-    m_shaders.push_back(shader);
-}
-
-void Shader::assemble()
-{
-    // assemble and link the program
-    m_program = glCreateProgram();
-    for (size_t i = 0; i < m_shaders.size(); i++)
-        glAttachShader(m_program, m_shaders[i]);
-    glLinkProgram(m_program);
-
-    // check for errors
-    int success;
-    glGetProgramiv(m_program, GL_LINK_STATUS, &success);
-    if (!success) {
-        char info[512];
-        glGetProgramInfoLog(m_program, 512, nullptr, info);
-        throw std::runtime_error(string(info));
-    }
-
-    // cleanup
-    int size = m_shaders.size();
-    for (int i = 0; i < size; i++) {
-        glDeleteShader(m_shaders[m_shaders.size() - 1]);
-        m_shaders.pop_back();
-    }
+    printf("\x1b[1;%dm[%s]: %s\u001b[0m", color, tag, message);
 }
 
 static void error_callback([[maybe_unused]] int error,
                            const char* description)
 {
-    log("GLFW", ERROR, std::string(description));
+    log("GLFW", ERROR, description);
 }
 
 static void key_callback(GLFWwindow* window, int key,
@@ -182,6 +94,35 @@ static void key_callback(GLFWwindow* window, int key,
         GLint next = polygonMode[0] == GL_LINE ? GL_FILL : GL_LINE;
         glPolygonMode(GL_FRONT_AND_BACK, next);
     }
+}
+
+unsigned int create_texture(const char* filename)
+{
+    int width = 0, height = 0, channels = 0;
+    stbi_set_flip_vertically_on_load(true);
+
+    unsigned char* pixels = stbi_load(filename, &width, &height, &channels, 4);
+    if (pixels == nullptr)
+        throw std::runtime_error("Failed to open " + std::string(filename));
+
+    GLint format = channels == 3 ? GL_RGB : GL_RGBA;
+    if (channels != 3 && channels != 4)
+        throw std::runtime_error("Invalid texture format");
+
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, pixels);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    stbi_image_free(pixels);
+    return texture;
 }
 
 int main()
@@ -240,6 +181,19 @@ int main()
     glm::vec3 camera_target = glm::vec3(0.0, 0.0, 0.0);
     glm::vec3 camera_up = glm::vec3(0.0, 1.0, 0.0);
 
+    // create texture and set the texture unit
+    unsigned int texture;
+    try {
+        texture = create_texture("../assets/textures/image.png");
+        shader.use();
+        shader.set_int("texture1", 0);
+    } catch (const std::runtime_error& err) {
+        log("SHADER", ERROR, err.what());
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return -1;
+    }
+
     while (!glfwWindowShouldClose(window)) {
         int width, height;
         glfwGetFramebufferSize(window, &width, &height);
@@ -262,6 +216,9 @@ int main()
         shader.set_matrix("view", view);
 
         glBindVertexArray(vao);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+
         glm::mat4 model = glm::mat4(1.0);
         shader.set_matrix("model", model);
         glDrawArrays(GL_TRIANGLES, 0, sizeof(cube_vertices) / stride);
@@ -272,6 +229,8 @@ int main()
 
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
+
+    glDeleteTextures(1, &texture);
     shader.cleanup();
 
     glfwDestroyWindow(window);

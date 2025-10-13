@@ -22,6 +22,7 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_WAYLAND ON CACHE BOOL "" FORCE)
+set(GLFW_BUILD_X11 OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(glfw)
 
 # glad
@@ -29,7 +30,7 @@ add_library(glad ${PROJECT_SOURCE_DIR}/lib/glad/src/glad.c)
 target_include_directories(glad PUBLIC ${PROJECT_SOURCE_DIR}/lib/glad/include)
 
 # build
-file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.cc src/*.h)
+file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp src/*.h)
 add_executable(${PROJECT} ${SOURCES})
 
 target_link_libraries(${PROJECT} PRIVATE glm::glm glfw glad)
