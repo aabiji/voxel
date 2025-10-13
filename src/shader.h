@@ -7,13 +7,13 @@
 class Shader
 {
 public:
-    ~Shader() = default;
-    Shader() = default;
+    Shader();
+    ~Shader();
+
     Shader(const Shader&) = delete;
     Shader& operator=(const Shader&) = delete;
 
     void use();
-    void cleanup();
     void assemble();
     void add(GLenum type, const char* path);
 

@@ -1,12 +1,13 @@
 #include <stdexcept>
 #include <string>
-#include <stdio.h>
+#include <iostream>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 #include "shader.h"
 
+// TODO: https://wikis.khronos.org/opengl/Common_Mistakes
 // TODO: control the camera
 // TODO: add an EBO to our cube vertices (how should we draw cubes btw??)
 // TODO: refactor (really think about it)
@@ -65,25 +66,138 @@ const float cube_vertices[] = {
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
-enum log_type { ERROR, WARNING, INFO };
-void log(const char* tag, log_type type, const char* message)
+class Texture
 {
-    // fatal = red, warning = yellow, info = cyan
-    int color = type == ERROR ? 31 : type == WARNING ? 33 : 36;
-    printf("\x1b[1;%dm[%s]: %s\u001b[0m", color, tag, message);
+public:
+    Texture(const char* path);
+    ~Texture();
+
+    Texture(const Texture&) = delete;
+    Texture& operator=(const Texture&) = delete;
+
+    unsigned int id() { return m_texture; }
+private:
+    int m_width, m_height;
+    unsigned int m_texture;
+};
+
+Texture::~Texture() { glDeleteTextures(1, &m_texture); }
+
+Texture::Texture(const char* path)
+{
+    int channels; // requesting it to always be 4
+    unsigned char* pixels = stbi_load(path, &m_width, &m_height, &channels, 4);
+    if (pixels == nullptr)
+        throw std::runtime_error("Failed to open " + std::string(path));
+
+    glGenTextures(1, &m_texture);
+    glBindTexture(GL_TEXTURE_2D, m_texture);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, m_width, m_height);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_width, m_height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+    stbi_image_free(pixels);
 }
 
-static void error_callback([[maybe_unused]] int error,
-                           const char* description)
+enum class Logtype { ERROR, WARNING, INFO };
+
+class Engine
 {
-    log("GLFW", ERROR, description);
+public:
+    Engine();
+    ~Engine();
+
+    void run();
+
+    static void log(std::string tag, Logtype type, std::string message);
+private:
+    GLFWwindow* m_window;
+
+    void init_window();
+    void init_context();
+
+    static void handle_opengl_error(
+        GLenum source, GLenum type, GLuint id, GLenum severity,
+        GLsizei length, const GLchar* message, const void* userParam);
+
+    static void handle_mouse_move(GLFWwindow* window, double x, double y);
+    static void handle_mouse_click(GLFWwindow* window, int button, int action, int mods);
+    static void handle_keyboard_input(
+        GLFWwindow* window, int key, int scancode, int action, int mods);
+};
+
+Engine::Engine()
+{
+    init_window();
+    init_context();
 }
 
-static void key_callback(GLFWwindow* window, int key,
-                         [[maybe_unused]] int scancode,
-                         [[maybe_unused]] int action,
-                         [[maybe_unused]] int mods)
+Engine::~Engine()
 {
+    if (m_window)
+        glfwDestroyWindow(m_window);
+    glfwTerminate();
+}
+
+void Engine::init_window()
+{
+    if (!glfwInit())
+        throw std::runtime_error("Failed to initialize GLFW");
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    m_window = glfwCreateWindow(900, 700, "Voxel", nullptr, nullptr);
+    if (!m_window)
+        throw std::runtime_error("Failed to create window");
+
+    glfwSetKeyCallback(m_window, Engine::handle_keyboard_input);
+}
+
+void Engine::init_context()
+{
+    glfwMakeContextCurrent(m_window);
+    gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+    glfwSwapInterval(1);
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(Engine::handle_opengl_error, 0);
+}
+
+void Engine::log(std::string tag, Logtype type, std::string message)
+{
+    int color = type == Logtype::ERROR ? 31 : type == Logtype::WARNING ? 33 : 36;
+    std::cout << std::format("\x1b[1;{}m[{}]: {}\u001b[0m\n", color, tag, message);
+}
+
+void Engine::handle_opengl_error(
+    GLenum source, GLenum type, GLuint id, GLenum severity,
+    GLsizei length, const GLchar* message, const void* userParam)
+{
+    (void)source;
+    (void)type;
+    (void)id;
+    (void)userParam;
+    (void)length;
+    Logtype ltype = severity == GL_DEBUG_SEVERITY_HIGH ? Logtype::ERROR
+        : severity == GL_DEBUG_SEVERITY_MEDIUM ? Logtype::WARNING
+        : Logtype::INFO;
+    Engine::log("OPENGL", ltype, message);
+}
+
+void Engine::handle_keyboard_input(
+    GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    (void)scancode;
+    (void)mods;
+
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
@@ -96,69 +210,27 @@ static void key_callback(GLFWwindow* window, int key,
     }
 }
 
-unsigned int create_texture(const char* filename)
+void Engine::handle_mouse_click(GLFWwindow* window, int button, int action, int mods)
 {
-    int width = 0, height = 0, channels = 0;
-    stbi_set_flip_vertically_on_load(true);
-
-    unsigned char* pixels = stbi_load(filename, &width, &height, &channels, 4);
-    if (pixels == nullptr)
-        throw std::runtime_error("Failed to open " + std::string(filename));
-
-    GLint format = channels == 3 ? GL_RGB : GL_RGBA;
-    if (channels != 3 && channels != 4)
-        throw std::runtime_error("Invalid texture format");
-
-    unsigned int texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, pixels);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    stbi_image_free(pixels);
-    return texture;
+    (void)window;
+    (void)mods;
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+        Engine::log("INFO", Logtype::INFO, "Right click");
 }
 
-int main()
+void Engine::handle_mouse_move(GLFWwindow* window, double x, double y)
 {
-    glfwSetErrorCallback(error_callback);
-    if (!glfwInit())
-        return -1;
+    (void)window;
+    std::string msg = std::format("Right click: ({}, {})", x, y);
+    Engine::log("INFO", Logtype::INFO, msg.c_str());
+}
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    GLFWwindow* window = glfwCreateWindow(900, 700, "Voxel", nullptr, nullptr);
-    if (!window) {
-        glfwTerminate();
-        return -1;
-    }
-
-    glfwMakeContextCurrent(window);
-    gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-    glfwSwapInterval(1);
-    glfwSetKeyCallback(window, key_callback);
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-
+void Engine::run()
+{
     Shader shader;
-    try {
-        shader.add(GL_VERTEX_SHADER, "../assets/shaders/vertex.glsl");
-        shader.add(GL_FRAGMENT_SHADER, "../assets/shaders/fragment.glsl");
-        shader.assemble();
-    } catch (const std::runtime_error& err) {
-        log("SHADER", ERROR, err.what());
-        glfwDestroyWindow(window);
-        glfwTerminate();
-        return -1;
-    }
+    shader.add(GL_VERTEX_SHADER, "../assets/shaders/vertex.glsl");
+    shader.add(GL_FRAGMENT_SHADER, "../assets/shaders/fragment.glsl");
+    shader.assemble();
 
     unsigned int vbo, vao;
     glGenVertexArrays(1, &vao);
@@ -182,21 +254,13 @@ int main()
     glm::vec3 camera_up = glm::vec3(0.0, 1.0, 0.0);
 
     // create texture and set the texture unit
-    unsigned int texture;
-    try {
-        texture = create_texture("../assets/textures/image.png");
-        shader.use();
-        shader.set_int("texture1", 0);
-    } catch (const std::runtime_error& err) {
-        log("SHADER", ERROR, err.what());
-        glfwDestroyWindow(window);
-        glfwTerminate();
-        return -1;
-    }
+    Texture texture("../assets/textures/image.png");
+    shader.use();
+    shader.set_int("texture1", 0);
 
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(m_window)) {
         int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
+        glfwGetFramebufferSize(m_window, &width, &height);
 
         glViewport(0, 0, width, height);
         glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -217,23 +281,28 @@ int main()
 
         glBindVertexArray(vao);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        glBindTexture(GL_TEXTURE_2D, texture.id());
 
         glm::mat4 model = glm::mat4(1.0);
         shader.set_matrix("model", model);
         glDrawArrays(GL_TRIANGLES, 0, sizeof(cube_vertices) / stride);
 
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(m_window);
         glfwPollEvents();
     }
 
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
+}
 
-    glDeleteTextures(1, &texture);
-    shader.cleanup();
-
-    glfwDestroyWindow(window);
-    glfwTerminate();
+int main()
+{
+    try {
+        Engine engine{};
+        engine.run();
+    } catch (const std::runtime_error& err) {
+        Engine::log("ENGINE", Logtype::ERROR, err.what());
+        return -1;
+    }
     return 0;
 }

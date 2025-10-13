@@ -3,7 +3,9 @@
 
 #include "shader.h"
 
-void Shader::cleanup() { if (m_program) glDeleteProgram(m_program); }
+Shader::Shader() { m_program = glCreateProgram(); }
+
+Shader::~Shader() { if (m_program) glDeleteProgram(m_program);  }
 
 void Shader::use() { if (m_program) glUseProgram(m_program); }
 
@@ -52,10 +54,8 @@ void Shader::add(GLenum type, const char* path)
 void Shader::assemble()
 {
     // assemble and link the program
-    m_program = glCreateProgram();
     for (size_t i = 0; i < m_shaders.size(); i++)
         glAttachShader(m_program, m_shaders[i]);
-
     glLinkProgram(m_program);
     for (size_t i = 0; i < m_shaders.size(); i++)
         glDeleteShader(m_shaders[i]);
