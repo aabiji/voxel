@@ -12,9 +12,6 @@
 // TODO: add an EBO to our cube vertices (how should we draw cubes btw??)
 // TODO: refactor (really think about it)
 
-#define GLAD_GL_IMPLEMENTATION
-#include <glad/glad.h>
-
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
@@ -106,6 +103,22 @@ Texture::Texture(const char* path)
 
 enum class Logtype { ERROR, WARNING, INFO };
 
+struct Camera
+{
+    Camera()
+        : m_position(0.0, 0.0, 3.0),
+        m_front_direction(0.0, 0.0, -1.0) {}
+
+    glm::vec3 m_position;
+    glm::vec3 m_front_direction;
+
+    glm::mat4 view_matrix()
+    {
+        const glm::vec3 up = glm::vec3(0.0, 1.0, 0.0);
+        return glm::lookAt(m_position, m_position + m_front_direction, up);
+    }
+};
+
 class Engine
 {
 public:
@@ -116,6 +129,8 @@ public:
 
     static void log(std::string tag, Logtype type, std::string message);
 private:
+    static int m_window_width;
+    static int m_window_height;
     GLFWwindow* m_window;
 
     void init_window();
@@ -124,12 +139,15 @@ private:
     static void handle_opengl_error(
         GLenum source, GLenum type, GLuint id, GLenum severity,
         GLsizei length, const GLchar* message, const void* userParam);
-
+    static void handle_window_size(GLFWwindow* window, int width, int height);
     static void handle_mouse_move(GLFWwindow* window, double x, double y);
     static void handle_mouse_click(GLFWwindow* window, int button, int action, int mods);
     static void handle_keyboard_input(
         GLFWwindow* window, int key, int scancode, int action, int mods);
 };
+
+int Engine::m_window_width = 900;
+int Engine::m_window_height = 900;
 
 Engine::Engine()
 {
@@ -152,11 +170,16 @@ void Engine::init_window()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    m_window = glfwCreateWindow(900, 700, "Voxel", nullptr, nullptr);
+
+    m_window = glfwCreateWindow(m_window_width, m_window_height,
+                                "Voxel", nullptr, nullptr);
     if (!m_window)
         throw std::runtime_error("Failed to create window");
 
     glfwSetKeyCallback(m_window, Engine::handle_keyboard_input);
+    glfwSetWindowSizeCallback(m_window, Engine::handle_window_size);
+    glfwSetCursorPosCallback(m_window, Engine::handle_mouse_move);
+    glfwSetMouseButtonCallback(m_window, Engine::handle_mouse_click);
 }
 
 void Engine::init_context()
@@ -192,6 +215,15 @@ void Engine::handle_opengl_error(
     Engine::log("OPENGL", ltype, message);
 }
 
+
+void Engine::handle_window_size(GLFWwindow* window, int width, int height)
+{
+    (void)window;
+    glViewport(0, 0, width, height);
+    m_window_width = width;
+    m_window_height = height;
+}
+
 void Engine::handle_keyboard_input(
     GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -221,7 +253,7 @@ void Engine::handle_mouse_click(GLFWwindow* window, int button, int action, int 
 void Engine::handle_mouse_move(GLFWwindow* window, double x, double y)
 {
     (void)window;
-    std::string msg = std::format("Right click: ({}, {})", x, y);
+    std::string msg = std::format("Mouse move: ({}, {})", x, y);
     Engine::log("INFO", Logtype::INFO, msg.c_str());
 }
 
@@ -231,6 +263,8 @@ void Engine::run()
     shader.add(GL_VERTEX_SHADER, "../assets/shaders/vertex.glsl");
     shader.add(GL_FRAGMENT_SHADER, "../assets/shaders/fragment.glsl");
     shader.assemble();
+
+    Camera camera;
 
     unsigned int vbo, vao;
     glGenVertexArrays(1, &vao);
@@ -249,20 +283,12 @@ void Engine::run()
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    glm::vec3 camera_pos = glm::vec3(0.0, 0.0, 3.0);
-    glm::vec3 camera_target = glm::vec3(0.0, 0.0, 0.0);
-    glm::vec3 camera_up = glm::vec3(0.0, 1.0, 0.0);
-
     // create texture and set the texture unit
     Texture texture("../assets/textures/image.png");
     shader.use();
     shader.set_int("texture1", 0);
 
     while (!glfwWindowShouldClose(m_window)) {
-        int width, height;
-        glfwGetFramebufferSize(m_window, &width, &height);
-
-        glViewport(0, 0, width, height);
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -271,12 +297,11 @@ void Engine::run()
         glm::mat4 projection = glm::mat4(1.0);
         projection = glm::perspective(
             glm::radians(45.0f),
-            (float)width / (float)height,
+            (float)m_window_width / (float)m_window_height,
             0.1f, 100.0f);
         shader.set_matrix("projection", projection);
 
-        glm::mat4 view = glm::mat4(1.0);
-        view = glm::lookAt(camera_pos, camera_target, camera_up);
+        glm::mat4 view = camera.view_matrix();
         shader.set_matrix("view", view);
 
         glBindVertexArray(vao);
