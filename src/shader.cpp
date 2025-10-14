@@ -1,6 +1,4 @@
 #include <fstream>
-#include <glm/gtc/type_ptr.hpp>
-
 #include "shader.h"
 
 Shader::Shader() { m_program = glCreateProgram(); }
@@ -14,10 +12,10 @@ void Shader::set_int(const char* name, int value) const
     glUniform1i(glGetUniformLocation(m_program, name), value);
 }
 
-void Shader::set_matrix(const char* name, glm::mat4& value) const
+void Shader::set_matrix(const char* name, math::Matrix<4, 4>& matrix) const
 {
     int location = glGetUniformLocation(m_program, name);
-    glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
+    glUniformMatrix4fv(location, 1, GL_FALSE, matrix.ptr());
 }
 
 void Shader::add(GLenum type, const char* path)

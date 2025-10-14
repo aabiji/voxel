@@ -4,14 +4,6 @@ set(PROJECT voxel)
 project(${PROJECT})
 include(FetchContent)
 
-# glm
-FetchContent_Declare(
-	glm
-	GIT_REPOSITORY	https://github.com/g-truc/glm.git
-	GIT_TAG 	0af55ccecd98d4e5a8d1fad7de25ba429d60e863 #refs/tags/1.0.1
-)
-FetchContent_MakeAvailable(glm)
-
 # glfw
 FetchContent_Declare(
 	glfw
@@ -33,7 +25,7 @@ target_include_directories(glad PUBLIC ${PROJECT_SOURCE_DIR}/lib/glad/include)
 file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp src/*.h)
 add_executable(${PROJECT} ${SOURCES})
 
-target_link_libraries(${PROJECT} PRIVATE glm::glm glfw glad)
+target_link_libraries(${PROJECT} PRIVATE glfw glad)
 target_include_directories(${PROJECT} PRIVATE ${PROJECT_SOURCE_DIR}/lib/stb)
 
 set_property(TARGET ${PROJECT} PROPERTY CXX_STANDARD 23)

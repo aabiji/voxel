@@ -1,3 +1,4 @@
+#include "math.h"
 #include <stdexcept>
 #include <string>
 #include <iostream>
@@ -7,17 +8,8 @@
 
 #include "shader.h"
 
-// TODO: https://wikis.khronos.org/opengl/Common_Mistakes
-// TODO: control the camera
-// TODO: add an EBO to our cube vertices (how should we draw cubes btw??)
-// TODO: refactor (really think about it)
-
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 const float cube_vertices[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -109,13 +101,13 @@ struct Camera
         : m_position(0.0, 0.0, 3.0),
         m_front_direction(0.0, 0.0, -1.0) {}
 
-    glm::vec3 m_position;
-    glm::vec3 m_front_direction;
+    math::Vec<3> m_position;
+    math::Vec<3> m_front_direction;
 
-    glm::mat4 view_matrix()
+    math::Matrix<4, 4> view_matrix()
     {
-        const glm::vec3 up = glm::vec3(0.0, 1.0, 0.0);
-        return glm::lookAt(m_position, m_position + m_front_direction, up);
+        const math::Vec<3> up = math::Vec<3>(0.0, 1.0, 0.0);
+        return math::LookAt(m_position, m_position + m_front_direction, up);
     }
 };
 
@@ -294,21 +286,18 @@ void Engine::run()
 
         shader.use();
 
-        glm::mat4 projection = glm::mat4(1.0);
-        projection = glm::perspective(
-            glm::radians(45.0f),
-            (float)m_window_width / (float)m_window_height,
-            0.1f, 100.0f);
+        math::Matrix<4, 4> projection = math::PerspectiveProjection(
+            0.1f, 100.0f, (float)m_window_width / (float)m_window_height, math::radians(45));
         shader.set_matrix("projection", projection);
 
-        glm::mat4 view = camera.view_matrix();
+        math::Matrix<4, 4> view = camera.view_matrix();
         shader.set_matrix("view", view);
 
         glBindVertexArray(vao);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture.id());
 
-        glm::mat4 model = glm::mat4(1.0);
+        math::Matrix<4, 4> model;
         shader.set_matrix("model", model);
         glDrawArrays(GL_TRIANGLES, 0, sizeof(cube_vertices) / stride);
 
