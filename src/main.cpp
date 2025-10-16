@@ -1,7 +1,11 @@
-#include "math.h"
 #include <stdexcept>
 #include <string>
 #include <iostream>
+
+// TODO: fix camera movement (handle key presses in main loop, not callback)
+// TODO: proper camera translation
+// TODO: add cmaera rotation using mouse
+// TODO: now think about rendering multiple cubes in a lattice
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -10,6 +14,8 @@
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+
+#include "math.h"
 
 const float cube_vertices[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -55,6 +61,14 @@ const float cube_vertices[] = {
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
+enum class Logtype { ERROR, WARNING, INFO };
+
+void log(std::string tag, Logtype type, std::string message)
+{
+    int color = type == Logtype::ERROR ? 31 : type == Logtype::WARNING ? 33 : 36;
+    std::cout << std::format("\x1b[1;{}m[{}]: {}\u001b[0m\n", color, tag, message);
+}
+
 class Texture
 {
 public:
@@ -93,22 +107,30 @@ Texture::Texture(const char* path)
     stbi_image_free(pixels);
 }
 
-enum class Logtype { ERROR, WARNING, INFO };
-
-struct Camera
+class Camera
 {
+public:
     Camera()
-        : m_position(0.0, 0.0, 3.0),
+        : m_position(0.0, 0.0, 5.0),
         m_front_direction(0.0, 0.0, -1.0) {}
-
-    math::Vec<3> m_position;
-    math::Vec<3> m_front_direction;
 
     math::Matrix<4, 4> view_matrix()
     {
-        const math::Vec<3> up = math::Vec<3>(0.0, 1.0, 0.0);
-        return math::LookAt(m_position, m_position + m_front_direction, up);
+        const auto up = math::Vec<3>(0.0, 1.0, 0.0);
+        const auto p = m_position + m_translation;
+        return math::LookAt(p, p + m_front_direction, up);
     }
+
+    void move(math::Vec<3> direction)
+    {
+        m_translation = m_translation + direction;
+        log("CAMERA", Logtype::INFO, std::format("{}, {}, {}", m_translation.arr[0], m_translation.arr[1], m_translation.arr[2]));
+    }
+
+private:
+    math::Vec<3> m_position;
+    math::Vec<3> m_front_direction;
+    math::Vec<3> m_translation;
 };
 
 class Engine
@@ -118,12 +140,12 @@ public:
     ~Engine();
 
     void run();
-
-    static void log(std::string tag, Logtype type, std::string message);
 private:
     static int m_window_width;
     static int m_window_height;
     GLFWwindow* m_window;
+
+    Camera m_camera;
 
     void init_window();
     void init_context();
@@ -168,6 +190,7 @@ void Engine::init_window()
     if (!m_window)
         throw std::runtime_error("Failed to create window");
 
+    glfwSetWindowUserPointer(m_window, this);
     glfwSetKeyCallback(m_window, Engine::handle_keyboard_input);
     glfwSetWindowSizeCallback(m_window, Engine::handle_window_size);
     glfwSetCursorPosCallback(m_window, Engine::handle_mouse_move);
@@ -179,17 +202,9 @@ void Engine::init_context()
     glfwMakeContextCurrent(m_window);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
     glfwSwapInterval(1);
-
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(Engine::handle_opengl_error, 0);
-}
-
-void Engine::log(std::string tag, Logtype type, std::string message)
-{
-    int color = type == Logtype::ERROR ? 31 : type == Logtype::WARNING ? 33 : 36;
-    std::cout << std::format("\x1b[1;{}m[{}]: {}\u001b[0m\n", color, tag, message);
 }
 
 void Engine::handle_opengl_error(
@@ -204,7 +219,7 @@ void Engine::handle_opengl_error(
     Logtype ltype = severity == GL_DEBUG_SEVERITY_HIGH ? Logtype::ERROR
         : severity == GL_DEBUG_SEVERITY_MEDIUM ? Logtype::WARNING
         : Logtype::INFO;
-    Engine::log("OPENGL", ltype, message);
+    log("OPENGL", ltype, message);
 }
 
 
@@ -219,6 +234,8 @@ void Engine::handle_window_size(GLFWwindow* window, int width, int height)
 void Engine::handle_keyboard_input(
     GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+    Engine* ptr = static_cast<Engine*>(glfwGetWindowUserPointer(window));
+
     (void)scancode;
     (void)mods;
 
@@ -232,6 +249,24 @@ void Engine::handle_keyboard_input(
         GLint next = polygonMode[0] == GL_LINE ? GL_FILL : GL_LINE;
         glPolygonMode(GL_FRONT_AND_BACK, next);
     }
+
+    if (key == GLFW_KEY_W && action == GLFW_REPEAT)
+        ptr->m_camera.move(math::Vec<3>(0, 0, -1));
+
+    if (key == GLFW_KEY_S && action == GLFW_REPEAT)
+        ptr->m_camera.move(math::Vec<3>(0, 0, 1));
+
+    if (key == GLFW_KEY_A && action == GLFW_REPEAT)
+        ptr->m_camera.move(math::Vec<3>(-1, 0, 0));
+
+    if (key == GLFW_KEY_D && action == GLFW_REPEAT)
+        ptr->m_camera.move(math::Vec<3>(1, 0, 0));
+
+    if (key == GLFW_KEY_UP && action == GLFW_REPEAT)
+        ptr->m_camera.move(math::Vec<3>(0, 1, 0));
+
+    if (key == GLFW_KEY_DOWN && action == GLFW_REPEAT)
+        ptr->m_camera.move(math::Vec<3>(-0 -1, 0));
 }
 
 void Engine::handle_mouse_click(GLFWwindow* window, int button, int action, int mods)
@@ -239,14 +274,14 @@ void Engine::handle_mouse_click(GLFWwindow* window, int button, int action, int 
     (void)window;
     (void)mods;
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
-        Engine::log("INFO", Logtype::INFO, "Right click");
+        log("INFO", Logtype::INFO, "Right click");
 }
 
 void Engine::handle_mouse_move(GLFWwindow* window, double x, double y)
 {
     (void)window;
     std::string msg = std::format("Mouse move: ({}, {})", x, y);
-    Engine::log("INFO", Logtype::INFO, msg.c_str());
+    log("INFO", Logtype::INFO, msg.c_str());
 }
 
 void Engine::run()
@@ -255,8 +290,6 @@ void Engine::run()
     shader.add(GL_VERTEX_SHADER, "../assets/shaders/vertex.glsl");
     shader.add(GL_FRAGMENT_SHADER, "../assets/shaders/fragment.glsl");
     shader.assemble();
-
-    Camera camera;
 
     unsigned int vbo, vao;
     glGenVertexArrays(1, &vao);
@@ -280,6 +313,15 @@ void Engine::run()
     shader.use();
     shader.set_int("texture1", 0);
 
+    auto translation = math::Matrix<4, 4>::from_translation(0, 0, -10);
+    auto scale = math::Matrix<4, 4>::from_scale(1, 1, 1);
+
+    math::Quaternion q(math::radians(45), { 0, 1, 0 });
+    q = q * math::Quaternion(math::radians(45), { 1, 0, 0 });
+    auto rotation = q.to_matrix();
+
+    auto model = translation * rotation * scale;
+
     while (!glfwWindowShouldClose(m_window)) {
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -290,14 +332,13 @@ void Engine::run()
             0.1f, 100.0f, (float)m_window_width / (float)m_window_height, math::radians(45));
         shader.set_matrix("projection", projection);
 
-        math::Matrix<4, 4> view = camera.view_matrix();
+        math::Matrix<4, 4> view = m_camera.view_matrix();
         shader.set_matrix("view", view);
 
         glBindVertexArray(vao);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture.id());
 
-        math::Matrix<4, 4> model;
         shader.set_matrix("model", model);
         glDrawArrays(GL_TRIANGLES, 0, sizeof(cube_vertices) / stride);
 
@@ -315,7 +356,7 @@ int main()
         Engine engine{};
         engine.run();
     } catch (const std::runtime_error& err) {
-        Engine::log("ENGINE", Logtype::ERROR, err.what());
+        log("ENGINE", Logtype::ERROR, err.what());
         return -1;
     }
     return 0;
