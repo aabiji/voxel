@@ -1,8 +1,6 @@
 #include <stdexcept>
-#include <string>
 #include <iostream>
 
-// TODO: fix camera movement (handle key presses in main loop, not callback)
 // TODO: proper camera translation
 // TODO: add cmaera rotation using mouse
 // TODO: now think about rendering multiple cubes in a lattice
@@ -107,30 +105,37 @@ Texture::Texture(const char* path)
     stbi_image_free(pixels);
 }
 
+enum class Direction { FORWARD, BACK, LEFT, RIGHT };
+
 class Camera
 {
 public:
     Camera()
         : m_position(0.0, 0.0, 5.0),
-        m_front_direction(0.0, 0.0, -1.0) {}
+        m_front_direction(0.0, 0.0, -1.0),
+        m_up(0.0, 1.0, 0.0) {}
 
     math::Matrix<4, 4> view_matrix()
     {
-        const auto up = math::Vec<3>(0.0, 1.0, 0.0);
-        const auto p = m_position + m_translation;
-        return math::LookAt(p, p + m_front_direction, up);
+        return math::LookAt(m_position, m_position + m_front_direction, m_up);
     }
 
-    void move(math::Vec<3> direction)
+    void move(float delta_time, Direction d)
     {
-        m_translation = m_translation + direction;
-        log("CAMERA", Logtype::INFO, std::format("{}, {}, {}", m_translation.arr[0], m_translation.arr[1], m_translation.arr[2]));
+        float speed = 2 * delta_time;
+        auto z = m_front_direction * speed;
+        auto x = math::cross(m_front_direction, m_up).normalize() * speed;
+        if (d == Direction::FORWARD) m_position += z;
+        if (d == Direction::BACK) m_position -= z;
+        if (d == Direction::RIGHT) m_position += x;
+        if (d == Direction::LEFT) m_position -= x;
+        log("CAMERA", Logtype::INFO, m_position.to_string());
     }
 
 private:
     math::Vec<3> m_position;
     math::Vec<3> m_front_direction;
-    math::Vec<3> m_translation;
+    math::Vec<3> m_up;
 };
 
 class Engine
@@ -147,8 +152,12 @@ private:
 
     Camera m_camera;
 
+    float m_delta_time;
+    float m_last_frame;
+
     void init_window();
     void init_context();
+    void handle_keyboard_input();
 
     static void handle_opengl_error(
         GLenum source, GLenum type, GLuint id, GLenum severity,
@@ -156,8 +165,6 @@ private:
     static void handle_window_size(GLFWwindow* window, int width, int height);
     static void handle_mouse_move(GLFWwindow* window, double x, double y);
     static void handle_mouse_click(GLFWwindow* window, int button, int action, int mods);
-    static void handle_keyboard_input(
-        GLFWwindow* window, int key, int scancode, int action, int mods);
 };
 
 int Engine::m_window_width = 900;
@@ -167,6 +174,9 @@ Engine::Engine()
 {
     init_window();
     init_context();
+
+    m_delta_time = 0;
+    m_last_frame = 0;
 }
 
 Engine::~Engine()
@@ -191,7 +201,6 @@ void Engine::init_window()
         throw std::runtime_error("Failed to create window");
 
     glfwSetWindowUserPointer(m_window, this);
-    glfwSetKeyCallback(m_window, Engine::handle_keyboard_input);
     glfwSetWindowSizeCallback(m_window, Engine::handle_window_size);
     glfwSetCursorPosCallback(m_window, Engine::handle_mouse_move);
     glfwSetMouseButtonCallback(m_window, Engine::handle_mouse_click);
@@ -231,42 +240,25 @@ void Engine::handle_window_size(GLFWwindow* window, int width, int height)
     m_window_height = height;
 }
 
-void Engine::handle_keyboard_input(
-    GLFWwindow* window, int key, int scancode, int action, int mods)
+void Engine::handle_keyboard_input()
 {
-    Engine* ptr = static_cast<Engine*>(glfwGetWindowUserPointer(window));
-
-    (void)scancode;
-    (void)mods;
-
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-
     // toggle wireframe
-    if (key == GLFW_KEY_M && action == GLFW_PRESS) {
+    if (glfwGetKey(m_window, GLFW_KEY_M)) {
         GLint polygonMode[2];
         glGetIntegerv(GL_POLYGON_MODE, polygonMode);
         GLint next = polygonMode[0] == GL_LINE ? GL_FILL : GL_LINE;
         glPolygonMode(GL_FRONT_AND_BACK, next);
     }
 
-    if (key == GLFW_KEY_W && action == GLFW_REPEAT)
-        ptr->m_camera.move(math::Vec<3>(0, 0, -1));
-
-    if (key == GLFW_KEY_S && action == GLFW_REPEAT)
-        ptr->m_camera.move(math::Vec<3>(0, 0, 1));
-
-    if (key == GLFW_KEY_A && action == GLFW_REPEAT)
-        ptr->m_camera.move(math::Vec<3>(-1, 0, 0));
-
-    if (key == GLFW_KEY_D && action == GLFW_REPEAT)
-        ptr->m_camera.move(math::Vec<3>(1, 0, 0));
-
-    if (key == GLFW_KEY_UP && action == GLFW_REPEAT)
-        ptr->m_camera.move(math::Vec<3>(0, 1, 0));
-
-    if (key == GLFW_KEY_DOWN && action == GLFW_REPEAT)
-        ptr->m_camera.move(math::Vec<3>(-0 -1, 0));
+    // camera movement
+    if (glfwGetKey(m_window, GLFW_KEY_W) == GLFW_PRESS)
+        m_camera.move(m_delta_time, Direction::FORWARD);
+    if (glfwGetKey(m_window, GLFW_KEY_S) == GLFW_PRESS)
+        m_camera.move(m_delta_time, Direction::BACK);
+    if (glfwGetKey(m_window, GLFW_KEY_A) == GLFW_PRESS)
+        m_camera.move(m_delta_time, Direction::LEFT);
+    if (glfwGetKey(m_window, GLFW_KEY_D) == GLFW_PRESS)
+        m_camera.move(m_delta_time, Direction::RIGHT);
 }
 
 void Engine::handle_mouse_click(GLFWwindow* window, int button, int action, int mods)
@@ -313,7 +305,7 @@ void Engine::run()
     shader.use();
     shader.set_int("texture1", 0);
 
-    auto translation = math::Matrix<4, 4>::from_translation(0, 0, -10);
+    auto translation = math::Matrix<4, 4>::from_translation(0, 0, -5);
     auto scale = math::Matrix<4, 4>::from_scale(1, 1, 1);
 
     math::Quaternion q(math::radians(45), { 0, 1, 0 });
@@ -323,6 +315,12 @@ void Engine::run()
     auto model = translation * rotation * scale;
 
     while (!glfwWindowShouldClose(m_window)) {
+        float current_frame = glfwGetTime();
+        m_delta_time = current_frame - m_last_frame;
+        m_last_frame = current_frame;
+
+        handle_keyboard_input();
+
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

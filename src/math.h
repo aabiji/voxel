@@ -2,10 +2,11 @@
 
 #include <array>
 #include <cmath>
+#include <string>
 
 namespace math {
 
-template <std::size_t N>
+template <int N>
 struct Vec
 {
     std::array<float, N> arr;
@@ -17,16 +18,38 @@ struct Vec
     constexpr Vec<N> operator+(const Vec<N>& other) const
     {
         Vec<N> output;
-        for (std::size_t i = 0; i < N; i++)
+        for (int i = 0; i < N; i++)
             output.arr[i] = this->arr[i] + other.arr[i];
         return output;
+    }
+
+    constexpr Vec<N> &operator+=(const Vec<N> &other)
+    {
+        for (int i = 0; i < N; i++)
+            this->arr[i] += other.arr[i];
+        return *this;
     }
 
     constexpr Vec<N> operator-(const Vec<N>& other) const
     {
         Vec<N>  output;
-        for (std::size_t i = 0; i < N; i++)
+        for (int i = 0; i < N; i++)
             output.arr[i] = this->arr[i] - other.arr[i];
+        return output;
+    }
+
+    constexpr Vec<N> &operator-=(const Vec<N> &other)
+    {
+        for (int i = 0; i < N; i++)
+            this->arr[i] -= other.arr[i];
+        return *this;
+    }
+
+    constexpr Vec<N> operator*(const float n) const
+    {
+        Vec<N> output;
+        for (int i = 0; i < N; i++)
+            output.arr[i] = this->arr[i] * n;
         return output;
     }
 
@@ -34,7 +57,7 @@ struct Vec
     {
         Vec<N> output;
         float m = 1 / magnitude();
-        for (std::size_t i = 0; i < N; i++)
+        for (int i = 0; i < N; i++)
             output.arr[i] = this->arr[i] * m;
         return output;
     }
@@ -42,7 +65,7 @@ struct Vec
     constexpr float dot(const Vec<N>& other) const
     {
         float sum = 0;
-        for (std::size_t i = 0; i < N; i++)
+        for (int i = 0; i < N; i++)
             sum += this->arr[i] * other.arr[i];
         return sum;
     }
@@ -50,9 +73,19 @@ struct Vec
     constexpr float magnitude() const
     {
         float sum = 0;
-        for (std::size_t i = 0; i < N; i++)
+        for (int i = 0; i < N; i++)
             sum += arr[i] * arr[i];
         return std::sqrt(sum);
+    }
+
+    std::string to_string() const
+    {
+        std::string str = "[";
+        for (int i = 0; i < N; i++) {
+            str += std::to_string(arr[i]);
+            if (i < N - 1) str += ", ";
+        }
+        return str + "]";
     }
 };
 
@@ -160,16 +193,47 @@ struct Quaternion
 
 constexpr float radians(float degree) { return degree * M_PI / 180; }
 
-constexpr Vec<3> cross(const Vec<3>& a, const Vec<3>& b);
+// Compute the cross product between 2 vectors
+constexpr Vec<3> cross(const Vec<3>& a, const Vec<3>& b)
+{
+    return Vec<3>(
+        a.arr[1] * b.arr[2] - a.arr[2] * b.arr[1],
+        a.arr[2] * b.arr[0] - a.arr[0] * b.arr[2],
+        a.arr[0] * b.arr[1] - a.arr[1] * b.arr[0]
+    );
+}
 
 // Compute the LookAt matrix (a.k.a the view matrix)
-Matrix<4, 4> LookAt(Vec<3> position, Vec<3> target, Vec<3> up);
+constexpr Matrix<4, 4> LookAt(Vec<3> position, Vec<3> target, Vec<3> up)
+{
+    Vec<3> forward = (target - position).normalize();
+    Vec<3> right = cross(forward, up).normalize();
+    Vec<3> actual_up = cross(right, forward);
+    return Matrix<4, 4>(
+        right.arr[0],          right.arr[1],          right.arr[2],         -right.dot(position),
+        actual_up.arr[0],      actual_up.arr[1],      actual_up.arr[2],     -actual_up.dot(position),
+        -forward.arr[0],       -forward.arr[1],       -forward.arr[2],       forward.dot(position),
+        0,                     0,                     0,                     1
+    );
+}
 
 // Compute the perspective projection matrix:
 // near is the distance to the near plane
 // far is the distance to the far plane
 // aspect is the frustrum's aspet ratio
 // fov is the angle (in radians) of how wide the furstum is
-Matrix<4, 4> PerspectiveProjection(float near, float far, float aspect, float fov);
+constexpr Matrix<4, 4> PerspectiveProjection(float near, float far, float aspect, float fov)
+{
+    float t = near * std::tan(fov / 2);
+    float b = -t;
+    float r = t * aspect;
+    float l = -r;
+    return Matrix<4, 4>(
+        2 * near / (r - l),  0,                   (r + l) / (r - l),              0,
+        0,                   2 * near / (t - b),  (t + b) / (t - b),              0,
+        0,                   0,                   -(far + near) / (far - near),  -1,
+        0,                   0,                   -2 * far * near / (far - near), 0
+    );
+}
 
 }
