@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cmath>
+#include <random>
 #include <string>
 
 namespace math {
@@ -10,7 +11,7 @@ template <int N>
 struct Vec
 {
     std::array<float, N> arr;
-    constexpr Vec() : arr{0} {}
+    constexpr Vec() : arr{} {}
 
     template <typename... Args>
     constexpr Vec(Args... args) : arr{static_cast<float>(args)...} {}
@@ -102,9 +103,9 @@ struct Matrix
     // Identity matrix by default, if possible
     constexpr Matrix() : arr{0}
     {
-        if (N == M) {
+        if constexpr (N == M) {
             for (int i = 0; i < N; i++)
-                arr[i * N + i] = 1;
+                arr[i * M + i] = 1;
         }
     }
 
@@ -122,6 +123,19 @@ struct Matrix
             }
         }
         return result;
+    }
+
+    std::string to_string() const
+    {
+        std::string str = "[\n";
+        for (int i = 0; i < M; i++) {
+            str += "    ";
+            for (int j = 0; j < N; j++) {
+                str += std::to_string(arr[j * M + i]) + ", ";
+            }
+            str += "\n";
+        }
+        return str + "]";
     }
 
     static Matrix<4, 4> from_translation(float x, float y, float z)
@@ -155,14 +169,14 @@ struct Quaternion
     // Axis is a list of 3 values, where 1 denotes a rotation about that axis
     // ex: [1, 0, 0] denotes a rotation about the x axis
     // The angle's in radians
-    Quaternion(float angle, std::array<float, 3> axis)
+    Quaternion(float angle, Vec<3> axis)
     {
-        float length = sqrt(pow(axis[0], 2) + pow(axis[1], 2) + pow(axis[2], 2));
+        float length = sqrt(pow(axis.arr[0], 2) + pow(axis.arr[1], 2) + pow(axis.arr[2], 2));
         float s = std::sin(angle / 2);
         this->w = std::cos(angle / 2);
-        this->x = (axis[0] / length) * s;
-        this->y = (axis[1] / length) * s;
-        this->z = (axis[2] / length) * s;
+        this->x = (axis.arr[0] / length) * s;
+        this->y = (axis.arr[1] / length) * s;
+        this->z = (axis.arr[2] / length) * s;
     }
 
     Quaternion operator*(const Quaternion& b) const
@@ -193,6 +207,13 @@ struct Quaternion
 
 constexpr float radians(float degree) { return degree * M_PI / 180; }
 
+constexpr float random(float min, float max)
+{
+    std::default_random_engine engine(std::random_device{}());
+    std::uniform_real_distribution<float> dist(min, max);
+    return dist(engine);
+}
+
 // Compute the cross product between 2 vectors
 constexpr Vec<3> cross(const Vec<3>& a, const Vec<3>& b)
 {
@@ -206,14 +227,14 @@ constexpr Vec<3> cross(const Vec<3>& a, const Vec<3>& b)
 // Compute the LookAt matrix (a.k.a the view matrix)
 constexpr Matrix<4, 4> LookAt(Vec<3> position, Vec<3> target, Vec<3> up)
 {
-    Vec<3> forward = (target - position).normalize();
-    Vec<3> right = cross(forward, up).normalize();
-    Vec<3> actual_up = cross(right, forward);
+    Vec<3> direction = (position - target).normalize(); // backwards (z axis)
+    Vec<3> right = cross(direction, up).normalize(); // x axis
+    Vec<3> actual_up = cross(right, direction); // y axis
     return Matrix<4, 4>(
-        right.arr[0],          right.arr[1],          right.arr[2],         -right.dot(position),
-        actual_up.arr[0],      actual_up.arr[1],      actual_up.arr[2],     -actual_up.dot(position),
-        -forward.arr[0],       -forward.arr[1],       -forward.arr[2],       forward.dot(position),
-        0,                     0,                     0,                     1
+        right.arr[0],          actual_up.arr[0],         direction.arr[0],        0,
+        right.arr[1],          actual_up.arr[1],         direction.arr[1],        0,
+        right.arr[2],          actual_up.arr[2],         direction.arr[2],        0,
+        -right.dot(position), -actual_up.dot(position), -direction.dot(position), 1
     );
 }
 

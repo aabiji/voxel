@@ -1,10 +1,6 @@
 #include <stdexcept>
 #include <iostream>
 
-// TODO: proper camera translation
-// TODO: add cmaera rotation using mouse
-// TODO: now think about rendering multiple cubes in a lattice
-
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
@@ -113,11 +109,27 @@ public:
     Camera()
         : m_position(0.0, 0.0, 5.0),
         m_front_direction(0.0, 0.0, -1.0),
-        m_up(0.0, 1.0, 0.0) {}
+        m_up(0.0, 1.0, 0.0),
+        m_orientation(1.0, 0.0, 0.0, 0.0),
+        m_sensitivity(1),
+        m_pitch(0), m_yaw(0) {}
 
     math::Matrix<4, 4> view_matrix()
     {
         return math::LookAt(m_position, m_position + m_front_direction, m_up);
+    }
+
+    void rotate(float deltaX, float deltaY)
+    {
+        m_yaw += deltaX * m_sensitivity;
+        m_pitch += deltaY * m_sensitivity;
+
+        math::Vec<3> direction = (m_position - (m_position + m_front_direction)).normalize();
+        math::Vec<3> right = cross(direction, m_up).normalize();
+        math::Quaternion yaw_quat(m_yaw, m_up);
+        math::Quaternion pitch_quat(m_pitch, right);
+
+        m_orientation = yaw_quat * pitch_quat * m_orientation;
     }
 
     void move(float delta_time, Direction d)
@@ -127,15 +139,18 @@ public:
         auto x = math::cross(m_front_direction, m_up).normalize() * speed;
         if (d == Direction::FORWARD) m_position += z;
         if (d == Direction::BACK) m_position -= z;
-        if (d == Direction::RIGHT) m_position += x;
-        if (d == Direction::LEFT) m_position -= x;
-        log("CAMERA", Logtype::INFO, m_position.to_string());
+        if (d == Direction::RIGHT) m_position -= x;
+        if (d == Direction::LEFT) m_position += x;
     }
 
 private:
     math::Vec<3> m_position;
     math::Vec<3> m_front_direction;
     math::Vec<3> m_up;
+
+    math::Quaternion m_orientation;
+    float m_sensitivity;
+    float m_pitch, m_yaw;
 };
 
 class Engine
@@ -154,17 +169,20 @@ private:
 
     float m_delta_time;
     float m_last_frame;
+    float m_previous_x;
+    float m_previous_y;
 
     void init_window();
     void init_context();
+
     void handle_keyboard_input();
+    void handle_mouse_move();
+    void handle_mouse_clicks();
 
     static void handle_opengl_error(
         GLenum source, GLenum type, GLuint id, GLenum severity,
         GLsizei length, const GLchar* message, const void* userParam);
     static void handle_window_size(GLFWwindow* window, int width, int height);
-    static void handle_mouse_move(GLFWwindow* window, double x, double y);
-    static void handle_mouse_click(GLFWwindow* window, int button, int action, int mods);
 };
 
 int Engine::m_window_width = 900;
@@ -177,6 +195,8 @@ Engine::Engine()
 
     m_delta_time = 0;
     m_last_frame = 0;
+    m_previous_x = 0;
+    m_previous_y = 0;
 }
 
 Engine::~Engine()
@@ -202,8 +222,6 @@ void Engine::init_window()
 
     glfwSetWindowUserPointer(m_window, this);
     glfwSetWindowSizeCallback(m_window, Engine::handle_window_size);
-    glfwSetCursorPosCallback(m_window, Engine::handle_mouse_move);
-    glfwSetMouseButtonCallback(m_window, Engine::handle_mouse_click);
 }
 
 void Engine::init_context()
@@ -261,19 +279,23 @@ void Engine::handle_keyboard_input()
         m_camera.move(m_delta_time, Direction::RIGHT);
 }
 
-void Engine::handle_mouse_click(GLFWwindow* window, int button, int action, int mods)
+void Engine::handle_mouse_clicks()
 {
-    (void)window;
-    (void)mods;
-    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+    if (glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
         log("INFO", Logtype::INFO, "Right click");
 }
 
-void Engine::handle_mouse_move(GLFWwindow* window, double x, double y)
+void Engine::handle_mouse_move()
 {
-    (void)window;
-    std::string msg = std::format("Mouse move: ({}, {})", x, y);
-    log("INFO", Logtype::INFO, msg.c_str());
+    double x, y;
+    glfwGetCursorPos(m_window, &x, &y);
+    if (x != 0 || y != 0) {
+        // delta y's reversed since (0, 0) starts at the
+        // bottom left corner in opengl, not the top left
+        m_camera.rotate(float(x) - m_previous_x, m_previous_y - float(y));
+        m_previous_x = x;
+        m_previous_y = y;
+    }
 }
 
 void Engine::run()
@@ -305,14 +327,22 @@ void Engine::run()
     shader.use();
     shader.set_int("texture1", 0);
 
-    auto translation = math::Matrix<4, 4>::from_translation(0, 0, -5);
-    auto scale = math::Matrix<4, 4>::from_scale(1, 1, 1);
+    std::array<math::Matrix<4, 4>, 10> models;
+    for (int i = 0; i < 10; i++) {
+        float angle = math::random(0, 90);
+        math::Vec<3> axis = {
+            math::random(0, 1), math::random(0, 1), math::random(0, 1)
+        };
 
-    math::Quaternion q(math::radians(45), { 0, 1, 0 });
-    q = q * math::Quaternion(math::radians(45), { 1, 0, 0 });
-    auto rotation = q.to_matrix();
+        auto translation = math::Matrix<4, 4>::from_translation(
+            math::random(-5, 5), math::random(-2, 2), -math::random(8, 12));
 
-    auto model = translation * rotation * scale;
+        auto n = math::random(0.5, 1);
+        auto scale = math::Matrix<4, 4>::from_scale(n, n, n);
+
+        math::Quaternion q(math::radians(angle), axis);
+        models[i] = translation * q.to_matrix() * scale;
+    }
 
     while (!glfwWindowShouldClose(m_window)) {
         float current_frame = glfwGetTime();
@@ -320,6 +350,8 @@ void Engine::run()
         m_last_frame = current_frame;
 
         handle_keyboard_input();
+        handle_mouse_clicks();
+        handle_mouse_move();
 
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -336,9 +368,10 @@ void Engine::run()
         glBindVertexArray(vao);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture.id());
-
-        shader.set_matrix("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, sizeof(cube_vertices) / stride);
+        for (size_t i = 0; i < models.size(); i++) {
+            shader.set_matrix("model", models[i]);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
         glfwSwapBuffers(m_window);
         glfwPollEvents();
