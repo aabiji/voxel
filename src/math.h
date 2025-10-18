@@ -5,8 +5,6 @@
 #include <random>
 #include <string>
 
-namespace math {
-
 template <int N>
 struct Vec
 {
@@ -63,20 +61,29 @@ struct Vec
         return output;
     }
 
-    constexpr float dot(const Vec<N>& other) const
-    {
-        float sum = 0;
-        for (int i = 0; i < N; i++)
-            sum += this->arr[i] * other.arr[i];
-        return sum;
-    }
-
     constexpr float magnitude() const
     {
         float sum = 0;
         for (int i = 0; i < N; i++)
             sum += arr[i] * arr[i];
         return std::sqrt(sum);
+    }
+
+    constexpr static float dot(const Vec<N>& a, const Vec<N>& b)
+    {
+        float sum = 0;
+        for (int i = 0; i < N; i++)
+            sum += a.arr[i] * b.arr[i];
+        return sum;
+    }
+
+    constexpr static Vec<3> cross(const Vec<3>& a, const Vec<3>& b)
+    {
+        return Vec<3>(
+            a.arr[1] * b.arr[2] - a.arr[2] * b.arr[1],
+            a.arr[2] * b.arr[0] - a.arr[0] * b.arr[2],
+            a.arr[0] * b.arr[1] - a.arr[1] * b.arr[0]
+        );
     }
 
     std::string to_string() const
@@ -188,6 +195,14 @@ struct Quaternion
             this->w * b.z + this->x * b.y - this->y * b.x + this->z * b.w);
     }
 
+    Vec<3> operator*(const Vec<3> v) const
+    {
+        Vec<3> u = Vec<3>(this->x, this->y, this->z);
+        return u * 2.0f * Vec<3>::dot(u, v)
+             + v * (this->w * this->w - Vec<3>::dot(u, u))
+             + Vec<3>::cross(u, v) * this->w * 2.0;
+    }
+
     Matrix<4, 4> to_matrix() const
     {
         using std::pow, std::sqrt;
@@ -214,27 +229,20 @@ constexpr float random(float min, float max)
     return dist(engine);
 }
 
-// Compute the cross product between 2 vectors
-constexpr Vec<3> cross(const Vec<3>& a, const Vec<3>& b)
-{
-    return Vec<3>(
-        a.arr[1] * b.arr[2] - a.arr[2] * b.arr[1],
-        a.arr[2] * b.arr[0] - a.arr[0] * b.arr[2],
-        a.arr[0] * b.arr[1] - a.arr[1] * b.arr[0]
-    );
-}
-
 // Compute the LookAt matrix (a.k.a the view matrix)
 constexpr Matrix<4, 4> LookAt(Vec<3> position, Vec<3> target, Vec<3> up)
 {
     Vec<3> direction = (position - target).normalize(); // backwards (z axis)
-    Vec<3> right = cross(direction, up).normalize(); // x axis
-    Vec<3> actual_up = cross(right, direction); // y axis
+    Vec<3> right = Vec<3>::cross(direction, up).normalize(); // x axis
+    Vec<3> actual_up = Vec<3>::cross(right, direction); // y axis
+    auto a = -Vec<3>::dot(right, position);
+    auto b = -Vec<3>::dot(actual_up, position);
+    auto c = -Vec<3>::dot(direction, position);
     return Matrix<4, 4>(
-        right.arr[0],          actual_up.arr[0],         direction.arr[0],        0,
-        right.arr[1],          actual_up.arr[1],         direction.arr[1],        0,
-        right.arr[2],          actual_up.arr[2],         direction.arr[2],        0,
-        -right.dot(position), -actual_up.dot(position), -direction.dot(position), 1
+        right.arr[0], actual_up.arr[0], direction.arr[0], 0,
+        right.arr[1], actual_up.arr[1], direction.arr[1], 0,
+        right.arr[2], actual_up.arr[2], direction.arr[2], 0,
+        a,            b,                c,                1
     );
 }
 
@@ -255,6 +263,4 @@ constexpr Matrix<4, 4> PerspectiveProjection(float near, float far, float aspect
         0,                   0,                   -(far + near) / (far - near),  -1,
         0,                   0,                   -2 * far * near / (far - near), 0
     );
-}
-
 }

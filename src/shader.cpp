@@ -12,7 +12,7 @@ void Shader::set_int(const char* name, int value) const
     glUniform1i(glGetUniformLocation(m_program, name), value);
 }
 
-void Shader::set_matrix(const char* name, math::Matrix<4, 4>& matrix) const
+void Shader::set_matrix(const char* name, Matrix<4, 4>& matrix) const
 {
     int location = glGetUniformLocation(m_program, name);
     glUniformMatrix4fv(location, 1, GL_FALSE, matrix.ptr());
@@ -27,7 +27,7 @@ void Shader::add(GLenum type, const char* path)
 
     std::string source = "", line = "";
     while (std::getline(file, line))
-        source += line + '\n'; 
+        source += line + '\n';
     file.close();
 
     // compile the shader

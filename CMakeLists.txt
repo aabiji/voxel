@@ -22,8 +22,7 @@ add_library(glad ${PROJECT_SOURCE_DIR}/lib/glad/src/glad.c)
 target_include_directories(glad PUBLIC ${PROJECT_SOURCE_DIR}/lib/glad/include)
 
 # build
-file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp src/*.h)
-add_executable(${PROJECT} ${SOURCES})
+add_executable(${PROJECT} src/engine.cpp src/shader.cpp src/main.cpp)
 
 target_link_libraries(${PROJECT} PRIVATE glfw glad)
 target_include_directories(${PROJECT} PRIVATE ${PROJECT_SOURCE_DIR}/lib/stb)
