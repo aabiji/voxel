@@ -1,58 +1,24 @@
+#include "chunk.h"
 #include "engine.h"
 #include "utils.h"
 
-const float cube_vertices[] = {
-    // front face
-   -1.0f, -1.0f,  1.0f,  0.0f, 0.0f, 0.0f,
-    1.0f, -1.0f,  1.0f,  1.0f, 0.0f, 0.0f,
-    1.0f,  1.0f,  1.0f,  1.0f, 1.0f, 0.0f,
-   -1.0f, -1.0f,  1.0f,  0.0f, 0.0f, 0.0f,
-    1.0f,  1.0f,  1.0f,  1.0f, 1.0f, 0.0f,
-   -1.0f,  1.0f,  1.0f,  0.0f, 1.0f, 0.0f,
+/*
+code review:
+- provide move constructors for the classes
+- use std::expected instead of throwing exceptions
+- call glfwTerminate in Engine's deconstructor
+- use std::ostreamstream in the to_string() methods
+- check if normalization is really needed in the Quaternion constrcutor
+- explicit template instantiation for Vec<3> and Matrix<4, 4> to reduce compilation times
+- consider moving the voxel engine into its own class and just have Engine in charge of rendering
 
-    // back face
-   -1.0f, -1.0f, -1.0f,  0.0f, 0.0f, 0.0f,
-    1.0f, -1.0f, -1.0f,  1.0f, 0.0f, 0.0f,
-    1.0f,  1.0f, -1.0f,  1.0f, 1.0f, 0.0f,
-   -1.0f, -1.0f, -1.0f,  0.0f, 0.0f, 0.0f,
-    1.0f,  1.0f, -1.0f,  1.0f, 1.0f, 0.0f,
-   -1.0f,  1.0f, -1.0f,  0.0f, 1.0f, 0.0f,
-
-    // top face
-   -1.0f,  1.0f, -1.0f,  0.0f, 1.0f, 1.0f,
-    1.0f,  1.0f, -1.0f,  1.0f, 1.0f, 1.0f,
-    1.0f,  1.0f,  1.0f,  1.0f, 0.0f, 1.0f,
-   -1.0f,  1.0f, -1.0f,  0.0f, 1.0f, 1.0f,
-    1.0f,  1.0f,  1.0f,  1.0f, 0.0f, 1.0f,
-   -1.0f,  1.0f,  1.0f,  0.0f, 0.0f, 1.0f,
-
-    // bottom face
-   -1.0f, -1.0f, -1.0f,  0.0f, 1.0f, 2.0f,
-    1.0f, -1.0f,  1.0f,  1.0f, 0.0f, 2.0f,
-    1.0f, -1.0f, -1.0f,  1.0f, 1.0f, 2.0f,
-   -1.0f, -1.0f, -1.0f,  0.0f, 1.0f, 2.0f,
-   -1.0f, -1.0f,  1.0f,  0.0f, 0.0f, 2.0f,
-    1.0f, -1.0f,  1.0f,  1.0f, 0.0f, 2.0f,
-
-    // right face
-    1.0f, -1.0f, -1.0f,  1.0f, 0.0f, 0.0f,
-    1.0f, -1.0f,  1.0f,  0.0f, 0.0f, 0.0f,
-    1.0f,  1.0f,  1.0f,  0.0f, 1.0f, 0.0f,
-    1.0f, -1.0f, -1.0f,  1.0f, 0.0f, 0.0f,
-    1.0f,  1.0f,  1.0f,  0.0f, 1.0f, 0.0f,
-    1.0f,  1.0f, -1.0f,  1.0f, 1.0f, 0.0f,
-
-    // left face
-    -1.0f, -1.0f, -1.0f,  0.0f, 0.0f, 0.0f,
-    -1.0f, -1.0f,  1.0f,  1.0f, 0.0f, 0.0f,
-    -1.0f,  1.0f,  1.0f,  1.0f, 1.0f, 0.0f,
-    -1.0f, -1.0f, -1.0f,  0.0f, 0.0f, 0.0f,
-    -1.0f,  1.0f,  1.0f,  1.0f, 1.0f, 0.0f,
-    -1.0f,  1.0f, -1.0f,  0.0f, 1.0f, 0.0f
-};
-
-int Engine::m_window_width = 900;
-int Engine::m_window_height = 900;
+things to add:
+- look into instancing (drawing many cubes with 1 draw call)
+- data structure for managing vertex buffer objects and vertex attribute arrays
+- think about how terrain is going to be stored in chunks,
+  and how those chunks are going to be stored in memory
+- change the background
+*/
 
 Engine::Engine()
 {
@@ -73,6 +39,7 @@ void Engine::init_context()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+    m_window_width = 900, m_window_height = 700;
     m_window = glfwCreateWindow(m_window_width, m_window_height,
                                 "Voxel", nullptr, nullptr);
     if (!m_window)
@@ -102,32 +69,35 @@ void Engine::init_systems()
     m_block_textures.load("assets/textures/atlas.png", 3, 64);
     m_block_textures.set_unit(m_shader, "textures", 0);
 
+    m_camera.set_initial_mouse_position(m_window_width / 2.0, m_window_height / 2.0);
+
     m_delta_time = 0;
     m_last_frame = 0;
 }
 
 void Engine::handle_opengl_error(
-    GLenum source, GLenum type, GLuint id, GLenum severity,
-    GLsizei length, const GLchar* message, const void* userParam)
+    [[maybe_unused]] GLenum source, [[maybe_unused]] GLenum type,
+    [[maybe_unused]] GLuint id, GLenum severity,
+    [[maybe_unused]] GLsizei length, const GLchar* message,
+    [[maybe_unused]] const void* userParam)
 {
-    (void)source;
-    (void)type;
-    (void)id;
-    (void)userParam;
-    (void)length;
     Logtype ltype = severity == GL_DEBUG_SEVERITY_HIGH ? Logtype::ERROR
         : severity == GL_DEBUG_SEVERITY_MEDIUM ? Logtype::WARNING
         : Logtype::INFO;
     log("OPENGL", message, ltype);
 }
 
+void Engine::resize(int width, int height)
+{
+    m_window_width = width;
+    m_window_height = height;
+}
 
 void Engine::handle_window_size(GLFWwindow* window, int width, int height)
 {
-    (void)window;
+    Engine* engine = static_cast<Engine*>(glfwGetWindowUserPointer(window));
+    engine->resize(width, height);
     glViewport(0, 0, width, height);
-    m_window_width = width;
-    m_window_height = height;
 }
 
 void Engine::handle_keyboard_input()
@@ -142,7 +112,7 @@ void Engine::handle_keyboard_input()
 
     // camera movement
     if (glfwGetKey(m_window, GLFW_KEY_W) == GLFW_PRESS)
-        m_camera.move(m_delta_time, Direction::FORWARD);
+        m_camera.move(m_delta_time, Direction::FRONT);
 
     if (glfwGetKey(m_window, GLFW_KEY_S) == GLFW_PRESS)
         m_camera.move(m_delta_time, Direction::BACK);
@@ -160,10 +130,10 @@ void Engine::handle_keyboard_input()
         m_camera.move(m_delta_time, Direction::RIGHT);
 }
 
-void Engine::handle_mouse_clicks(GLFWwindow* window, int button, int action, int mods)
+void Engine::handle_mouse_clicks(
+    [[maybe_unused]]GLFWwindow* window,
+    int button, int action, [[maybe_unused]]int mods)
 {
-    (void)window;
-    (void)mods;
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
         log("INFO", "Right click");
 }
@@ -176,39 +146,7 @@ void Engine::handle_mouse_move(GLFWwindow* window, double x, double y)
 
 void Engine::run()
 {
-    unsigned int vbo, vao;
-    glGenVertexArrays(1, &vao);
-    glGenBuffers(1, &vbo);
-
-    glBindVertexArray(vao);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
-
-    int stride = 6 * sizeof(float);
-    // position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
-    glEnableVertexAttribArray(0);
-    // texture coordinate
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    std::array<Matrix<4, 4>, 10> models;
-    for (int i = 0; i < 10; i++) {
-        float angle = random(0, 90);
-        Vec<3> axis = {
-            random(0, 1), random(0, 1), random(0, 1)
-        };
-
-        auto translation = Matrix<4, 4>::from_translation(
-            random(-5, 5), random(-2, 2), -random(8, 12));
-
-        auto n = random(0.5, 1);
-        auto scale = Matrix<4, 4>::from_scale(n, n, n);
-
-        Quaternion q(radians(angle), axis);
-        models[i] = translation * q.to_matrix() * scale;
-    }
+    Chunk chunk;
 
     while (!glfwWindowShouldClose(m_window)) {
         float current_frame = glfwGetTime();
@@ -221,24 +159,17 @@ void Engine::run()
 
         m_shader.use();
 
-        Matrix<4, 4> projection = PerspectiveProjection(
+        Matrix<4, 4> projection = perspective_projection(
             0.1f, 100.0f, (float)m_window_width / (float)m_window_height, radians(45));
         m_shader.set_matrix("projection", projection);
 
         Matrix<4, 4> view = m_camera.view_matrix();
         m_shader.set_matrix("view", view);
 
-        glBindVertexArray(vao);
         m_block_textures.bind();
-        for (size_t i = 0; i < models.size(); i++) {
-            m_shader.set_matrix("model", models[i]);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
+        chunk.draw(m_shader);
 
         glfwSwapBuffers(m_window);
         glfwPollEvents();
     }
-
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vbo);
 }

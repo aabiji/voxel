@@ -14,9 +14,10 @@ public:
     Engine();
     ~Engine();
     void run();
+    void resize(int width, int height);
 private:
-    static int m_window_width;
-    static int m_window_height;
+    int m_window_width;
+    int m_window_height;
     float m_delta_time;
     float m_last_frame;
 

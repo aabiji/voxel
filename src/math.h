@@ -2,7 +2,6 @@
 
 #include <array>
 #include <cmath>
-#include <random>
 #include <string>
 
 template <int N>
@@ -14,6 +13,10 @@ struct Vec
     template <typename... Args>
     constexpr Vec(Args... args) : arr{static_cast<float>(args)...} {}
 
+    float x() const { return arr[0]; }
+    float y() const { return arr[1]; }
+    float z() const { return arr[2]; }
+
     constexpr Vec<N> operator+(const Vec<N>& other) const
     {
         Vec<N> output;
@@ -22,7 +25,7 @@ struct Vec
         return output;
     }
 
-    constexpr Vec<N> &operator+=(const Vec<N> &other)
+    constexpr Vec<N> &operator+=(const Vec<N>& other)
     {
         for (int i = 0; i < N; i++)
             this->arr[i] += other.arr[i];
@@ -37,7 +40,7 @@ struct Vec
         return output;
     }
 
-    constexpr Vec<N> &operator-=(const Vec<N> &other)
+    constexpr Vec<N> &operator-=(const Vec<N>& other)
     {
         for (int i = 0; i < N; i++)
             this->arr[i] -= other.arr[i];
@@ -102,7 +105,7 @@ template <int N, int M>
 struct Matrix
 {
     std::array<float, N * M> arr;
-    const float* ptr() { return (const float*)arr.data(); }
+    const float* ptr() { return arr.data(); }
 
     template <typename... Args>
     constexpr Matrix(Args... args) : arr{static_cast<float>(args)...} {}
@@ -176,14 +179,14 @@ struct Quaternion
     // Axis is a list of 3 values, where 1 denotes a rotation about that axis
     // ex: [1, 0, 0] denotes a rotation about the x axis
     // The angle's in radians
-    Quaternion(float angle, Vec<3> axis)
+    Quaternion(float angle, const Vec<3>& axis)
     {
-        float length = sqrt(pow(axis.arr[0], 2) + pow(axis.arr[1], 2) + pow(axis.arr[2], 2));
+        float length = sqrt(pow(axis.x(), 2) + pow(axis.y(), 2) + pow(axis.z(), 2));
         float s = std::sin(angle / 2);
         this->w = std::cos(angle / 2);
-        this->x = (axis.arr[0] / length) * s;
-        this->y = (axis.arr[1] / length) * s;
-        this->z = (axis.arr[2] / length) * s;
+        this->x = (axis.x() / length) * s;
+        this->y = (axis.y() / length) * s;
+        this->z = (axis.z() / length) * s;
     }
 
     Quaternion operator*(const Quaternion& b) const
@@ -195,7 +198,7 @@ struct Quaternion
             this->w * b.z + this->x * b.y - this->y * b.x + this->z * b.w);
     }
 
-    Vec<3> operator*(const Vec<3> v) const
+    Vec<3> operator*(const Vec<3>& v) const
     {
         Vec<3> u = Vec<3>(this->x, this->y, this->z);
         return u * 2.0f * Vec<3>::dot(u, v)
@@ -220,47 +223,11 @@ struct Quaternion
     }
 };
 
-constexpr float radians(float degree) { return degree * M_PI / 180; }
+extern template struct Vec<3>;
+extern template struct Matrix<4, 4>;
 
-constexpr float random(float min, float max)
-{
-    std::default_random_engine engine(std::random_device{}());
-    std::uniform_real_distribution<float> dist(min, max);
-    return dist(engine);
-}
+float random(float min, float max);
+float radians(float degree);
 
-// Compute the LookAt matrix (a.k.a the view matrix)
-constexpr Matrix<4, 4> LookAt(Vec<3> position, Vec<3> target, Vec<3> up)
-{
-    Vec<3> direction = (position - target).normalize(); // backwards (z axis)
-    Vec<3> right = Vec<3>::cross(direction, up).normalize(); // x axis
-    Vec<3> actual_up = Vec<3>::cross(right, direction); // y axis
-    auto a = -Vec<3>::dot(right, position);
-    auto b = -Vec<3>::dot(actual_up, position);
-    auto c = -Vec<3>::dot(direction, position);
-    return Matrix<4, 4>(
-        right.arr[0], actual_up.arr[0], direction.arr[0], 0,
-        right.arr[1], actual_up.arr[1], direction.arr[1], 0,
-        right.arr[2], actual_up.arr[2], direction.arr[2], 0,
-        a,            b,                c,                1
-    );
-}
-
-// Compute the perspective projection matrix:
-// near is the distance to the near plane
-// far is the distance to the far plane
-// aspect is the frustrum's aspet ratio
-// fov is the angle (in radians) of how wide the furstum is
-constexpr Matrix<4, 4> PerspectiveProjection(float near, float far, float aspect, float fov)
-{
-    float t = near * std::tan(fov / 2);
-    float b = -t;
-    float r = t * aspect;
-    float l = -r;
-    return Matrix<4, 4>(
-        2 * near / (r - l),  0,                   (r + l) / (r - l),              0,
-        0,                   2 * near / (t - b),  (t + b) / (t - b),              0,
-        0,                   0,                   -(far + near) / (far - near),  -1,
-        0,                   0,                   -2 * far * near / (far - near), 0
-    );
-}
+Matrix<4, 4> look_at(Vec<3>& position, Vec<3>& target, Vec<3>& up);
+Matrix<4, 4> perspective_projection(float near, float far, float aspect, float fov);

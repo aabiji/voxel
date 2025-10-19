@@ -24,7 +24,12 @@ target_include_directories(glad PUBLIC ${PROJECT_SOURCE_DIR}/lib/glad/include)
 # build
 add_executable(
     ${PROJECT}
-    src/engine.cpp src/shader.cpp src/spritesheet.cpp src/main.cpp
+    src/math.cpp
+    src/engine.cpp
+    src/shader.cpp
+    src/chunk.cpp
+    src/spritesheet.cpp
+    src/main.cpp
 )
 
 target_link_libraries(${PROJECT} PRIVATE glfw glad)
