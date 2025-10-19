@@ -4,7 +4,7 @@ Roadmap:
 Misc:
     - Custom memory allocator to avoid fragmentation
     - Basic UI for selecting blocks to place
-    - Our own version of glm (math for vectors, matrices, projection, quaternions, etc)
+    [x] Our own version of glm (math for vectors, matrices, projection, quaternions, etc)
 - Physics
     - 3D camera movement
     - 3D player movement
@@ -40,4 +40,3 @@ Misc:
 Priorities:
 - Must be *fast*
 - Built for learning purposes (really understand what's going on)
-  Built in C (*most* things should be my own code)

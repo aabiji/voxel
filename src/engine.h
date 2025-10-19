@@ -4,7 +4,9 @@
 #include <GLFW/glfw3.h>
 
 #include "camera.h"
-#include "shader.h"
+#include "spritesheet.h"
+
+void cleanup_opengl();
 
 class Engine
 {
@@ -15,14 +17,16 @@ public:
 private:
     static int m_window_width;
     static int m_window_height;
-    GLFWwindow* m_window;
-
-    Camera m_camera;
     float m_delta_time;
     float m_last_frame;
 
-    void init_window();
+    GLFWwindow* m_window;
+    Camera m_camera;
+    Shader m_shader;
+    Spritesheet m_block_textures;
+
     void init_context();
+    void init_systems();
 
     void handle_keyboard_input();
     static void handle_opengl_error(

@@ -1,11 +1,9 @@
 #include <fstream>
 #include "shader.h"
 
-Shader::Shader() { m_program = glCreateProgram(); }
+Shader::~Shader() { glDeleteProgram(m_program);  }
 
-Shader::~Shader() { if (m_program) glDeleteProgram(m_program);  }
-
-void Shader::use() { if (m_program) glUseProgram(m_program); }
+void Shader::use() { glUseProgram(m_program); }
 
 void Shader::set_int(const char* name, int value) const
 {
@@ -51,6 +49,8 @@ void Shader::add(GLenum type, const char* path)
 
 void Shader::assemble()
 {
+    m_program = glCreateProgram();
+
     // assemble and link the program
     for (size_t i = 0; i < m_shaders.size(); i++)
         glAttachShader(m_program, m_shaders[i]);

@@ -22,7 +22,10 @@ add_library(glad ${PROJECT_SOURCE_DIR}/lib/glad/src/glad.c)
 target_include_directories(glad PUBLIC ${PROJECT_SOURCE_DIR}/lib/glad/include)
 
 # build
-add_executable(${PROJECT} src/engine.cpp src/shader.cpp src/main.cpp)
+add_executable(
+    ${PROJECT}
+    src/engine.cpp src/shader.cpp src/spritesheet.cpp src/main.cpp
+)
 
 target_link_libraries(${PROJECT} PRIVATE glfw glad)
 target_include_directories(${PROJECT} PRIVATE ${PROJECT_SOURCE_DIR}/lib/stb)
@@ -30,3 +33,6 @@ target_include_directories(${PROJECT} PRIVATE ${PROJECT_SOURCE_DIR}/lib/stb)
 set_property(TARGET ${PROJECT} PROPERTY CXX_STANDARD 23)
 set_property(TARGET ${PROJECT} PROPERTY CXX_STANDARD_REQUIRED TRUE)
 target_compile_options(${PROJECT} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+
+# copy assets
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/assets" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")

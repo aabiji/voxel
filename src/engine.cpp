@@ -1,112 +1,70 @@
-#include <stdexcept>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 #include "engine.h"
 #include "utils.h"
 
 const float cube_vertices[] = {
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+    // front face
+   -1.0f, -1.0f,  1.0f,  0.0f, 0.0f, 0.0f,
+    1.0f, -1.0f,  1.0f,  1.0f, 0.0f, 0.0f,
+    1.0f,  1.0f,  1.0f,  1.0f, 1.0f, 0.0f,
+   -1.0f, -1.0f,  1.0f,  0.0f, 0.0f, 0.0f,
+    1.0f,  1.0f,  1.0f,  1.0f, 1.0f, 0.0f,
+   -1.0f,  1.0f,  1.0f,  0.0f, 1.0f, 0.0f,
 
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    // back face
+   -1.0f, -1.0f, -1.0f,  0.0f, 0.0f, 0.0f,
+    1.0f, -1.0f, -1.0f,  1.0f, 0.0f, 0.0f,
+    1.0f,  1.0f, -1.0f,  1.0f, 1.0f, 0.0f,
+   -1.0f, -1.0f, -1.0f,  0.0f, 0.0f, 0.0f,
+    1.0f,  1.0f, -1.0f,  1.0f, 1.0f, 0.0f,
+   -1.0f,  1.0f, -1.0f,  0.0f, 1.0f, 0.0f,
 
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    // top face
+   -1.0f,  1.0f, -1.0f,  0.0f, 1.0f, 1.0f,
+    1.0f,  1.0f, -1.0f,  1.0f, 1.0f, 1.0f,
+    1.0f,  1.0f,  1.0f,  1.0f, 0.0f, 1.0f,
+   -1.0f,  1.0f, -1.0f,  0.0f, 1.0f, 1.0f,
+    1.0f,  1.0f,  1.0f,  1.0f, 0.0f, 1.0f,
+   -1.0f,  1.0f,  1.0f,  0.0f, 0.0f, 1.0f,
 
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    // bottom face
+   -1.0f, -1.0f, -1.0f,  0.0f, 1.0f, 2.0f,
+    1.0f, -1.0f,  1.0f,  1.0f, 0.0f, 2.0f,
+    1.0f, -1.0f, -1.0f,  1.0f, 1.0f, 2.0f,
+   -1.0f, -1.0f, -1.0f,  0.0f, 1.0f, 2.0f,
+   -1.0f, -1.0f,  1.0f,  0.0f, 0.0f, 2.0f,
+    1.0f, -1.0f,  1.0f,  1.0f, 0.0f, 2.0f,
 
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    // right face
+    1.0f, -1.0f, -1.0f,  1.0f, 0.0f, 0.0f,
+    1.0f, -1.0f,  1.0f,  0.0f, 0.0f, 0.0f,
+    1.0f,  1.0f,  1.0f,  0.0f, 1.0f, 0.0f,
+    1.0f, -1.0f, -1.0f,  1.0f, 0.0f, 0.0f,
+    1.0f,  1.0f,  1.0f,  0.0f, 1.0f, 0.0f,
+    1.0f,  1.0f, -1.0f,  1.0f, 1.0f, 0.0f,
 
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+    // left face
+    -1.0f, -1.0f, -1.0f,  0.0f, 0.0f, 0.0f,
+    -1.0f, -1.0f,  1.0f,  1.0f, 0.0f, 0.0f,
+    -1.0f,  1.0f,  1.0f,  1.0f, 1.0f, 0.0f,
+    -1.0f, -1.0f, -1.0f,  0.0f, 0.0f, 0.0f,
+    -1.0f,  1.0f,  1.0f,  1.0f, 1.0f, 0.0f,
+    -1.0f,  1.0f, -1.0f,  0.0f, 1.0f, 0.0f
 };
-
-class Texture
-{
-public:
-    Texture(const char* path);
-    ~Texture();
-
-    Texture(const Texture&) = delete;
-    Texture& operator=(const Texture&) = delete;
-
-    unsigned int id() { return m_texture; }
-private:
-    int m_width, m_height;
-    unsigned int m_texture;
-};
-
-Texture::~Texture() { glDeleteTextures(1, &m_texture); }
-
-Texture::Texture(const char* path)
-{
-    int channels; // requesting it to always be 4
-    unsigned char* pixels = stbi_load(path, &m_width, &m_height, &channels, 4);
-    if (pixels == nullptr)
-        throw std::runtime_error("Failed to open " + std::string(path));
-
-    glGenTextures(1, &m_texture);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
-    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, m_width, m_height);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_width, m_height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-
-    stbi_image_free(pixels);
-}
 
 int Engine::m_window_width = 900;
 int Engine::m_window_height = 900;
 
 Engine::Engine()
 {
-    init_window();
     init_context();
-    m_delta_time = 0;
-    m_last_frame = 0;
+    init_systems();
 }
 
-Engine::~Engine()
-{
-    if (m_window)
-        glfwDestroyWindow(m_window);
-    glfwTerminate();
-}
+void cleanup_opengl() { glfwTerminate(); }
 
-void Engine::init_window()
+Engine::~Engine() { glfwDestroyWindow(m_window); }
+
+void Engine::init_context()
 {
     if (!glfwInit())
         throw std::runtime_error("Failed to initialize GLFW");
@@ -124,16 +82,28 @@ void Engine::init_window()
     glfwSetWindowSizeCallback(m_window, Engine::handle_window_size);
     glfwSetCursorPosCallback(m_window, Engine::handle_mouse_move);
     glfwSetMouseButtonCallback(m_window, Engine::handle_mouse_clicks);
-}
+    glfwSetCursorPos(m_window, m_window_width / 2.0, m_window_height / 2.0);
 
-void Engine::init_context()
-{
     glfwMakeContextCurrent(m_window);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
     glfwSwapInterval(1);
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(Engine::handle_opengl_error, 0);
+}
+
+void Engine::init_systems()
+{
+    m_shader.add(GL_VERTEX_SHADER, "assets/shaders/vertex.glsl");
+    m_shader.add(GL_FRAGMENT_SHADER, "assets/shaders/fragment.glsl");
+    m_shader.assemble();
+
+    m_block_textures.load("assets/textures/atlas.png", 3, 64);
+    m_block_textures.set_unit(m_shader, "textures", 0);
+
+    m_delta_time = 0;
+    m_last_frame = 0;
 }
 
 void Engine::handle_opengl_error(
@@ -206,11 +176,6 @@ void Engine::handle_mouse_move(GLFWwindow* window, double x, double y)
 
 void Engine::run()
 {
-    Shader shader;
-    shader.add(GL_VERTEX_SHADER, "../assets/shaders/vertex.glsl");
-    shader.add(GL_FRAGMENT_SHADER, "../assets/shaders/fragment.glsl");
-    shader.assemble();
-
     unsigned int vbo, vao;
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
@@ -220,18 +185,13 @@ void Engine::run()
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
 
-    int stride = 5 * sizeof(float);
+    int stride = 6 * sizeof(float);
     // position
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
     glEnableVertexAttribArray(0);
     // texture coordinate
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-
-    // create texture and set the texture unit
-    Texture texture("../assets/textures/image.png");
-    shader.use();
-    shader.set_int("texture1", 0);
 
     std::array<Matrix<4, 4>, 10> models;
     for (int i = 0; i < 10; i++) {
@@ -259,20 +219,19 @@ void Engine::run()
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        shader.use();
+        m_shader.use();
 
         Matrix<4, 4> projection = PerspectiveProjection(
             0.1f, 100.0f, (float)m_window_width / (float)m_window_height, radians(45));
-        shader.set_matrix("projection", projection);
+        m_shader.set_matrix("projection", projection);
 
         Matrix<4, 4> view = m_camera.view_matrix();
-        shader.set_matrix("view", view);
+        m_shader.set_matrix("view", view);
 
         glBindVertexArray(vao);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture.id());
+        m_block_textures.bind();
         for (size_t i = 0; i < models.size(); i++) {
-            shader.set_matrix("model", models[i]);
+            m_shader.set_matrix("model", models[i]);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 

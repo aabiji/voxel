@@ -9,9 +9,8 @@
 class Shader
 {
 public:
-    Shader();
+    Shader() {}
     ~Shader();
-
     Shader(const Shader&) = delete;
     Shader& operator=(const Shader&) = delete;
 
