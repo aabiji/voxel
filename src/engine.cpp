@@ -3,21 +3,12 @@
 #include "utils.h"
 
 /*
-code review:
+todo:
+- debug our chunk rendering (get it to work)
 - provide move constructors for the classes
 - use std::expected instead of throwing exceptions
 - call glfwTerminate in Engine's deconstructor
 - use std::ostreamstream in the to_string() methods
-- check if normalization is really needed in the Quaternion constrcutor
-- explicit template instantiation for Vec<3> and Matrix<4, 4> to reduce compilation times
-- consider moving the voxel engine into its own class and just have Engine in charge of rendering
-
-things to add:
-- look into instancing (drawing many cubes with 1 draw call)
-- data structure for managing vertex buffer objects and vertex attribute arrays
-- think about how terrain is going to be stored in chunks,
-  and how those chunks are going to be stored in memory
-- change the background
 */
 
 Engine::Engine()
@@ -167,7 +158,7 @@ void Engine::run()
         m_shader.set_matrix("view", view);
 
         m_block_textures.bind();
-        chunk.draw(m_shader);
+        chunk.draw();
 
         glfwSwapBuffers(m_window);
         glfwPollEvents();

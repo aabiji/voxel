@@ -3,7 +3,6 @@
 #include <vector>
 
 #include "math.h"
-#include "shader.h"
 
 struct Voxel { Vec<3> position; };
 
@@ -12,9 +11,7 @@ class Chunk
 public:
     Chunk();
     ~Chunk();
-
-    void draw([[maybe_unused]]Shader& shader);
-    int voxel_count() { return m_voxels.size(); }
+    void draw();
 private:
     void create_vertex_buffer();
     void create_element_buffer();

@@ -1,3 +1,6 @@
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/glad.h>
+
 #include "chunk.h"
 
 const float cube_vertices[] = {
@@ -57,7 +60,7 @@ Chunk::~Chunk()
     glDeleteBuffers(1, &m_ebo);
 }
 
-void Chunk::draw([[maybe_unused]]Shader& shader)
+void Chunk::draw()
 {
     // draw all the voxels with a single draw call
     glBindVertexArray(m_vao);
@@ -144,7 +147,7 @@ void Chunk::create_element_buffer()
 
 void Chunk::generate_chunk()
 {
-    float block_size = 0.5;
+    float block_size = 1;
     Vec<3> start(-2.0, 0, -2.0);
 
     for (int z = 0; z < m_size.z(); z++) {
