@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 
-#include "math.h"
+#include "shader.h"
 
 class Voxel
 {
@@ -20,7 +20,7 @@ class Chunk
 {
 public:
     Chunk();
-    void render();
+    void render(ShaderManager& shaders);
 private:
     // Map a voxel to its position
     std::unordered_map<Vec3, Voxel, Vec3Hasher> m_voxels;

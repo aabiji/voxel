@@ -41,10 +41,12 @@ Chunk::Chunk()
     m_voxels.insert({ Vec3(0, 0, 0), Voxel() });
 }
 
-void Chunk::render()
+void Chunk::render(ShaderManager& shaders)
 {
     // TODO: make this more efficient!
     for (auto& [position, voxel] : m_voxels) {
+        Matrix4 model;
+        shaders.set_matrix4("model", model);
         voxel.render();
     }
 }

@@ -58,3 +58,6 @@ void log(Level level, std::string_view fmt, Args&&... args)
     if (level == Level::fatal)
         exit(EXIT_FAILURE);
 }
+
+// Types
+enum class Direction { left, right, down, up, front, back };
