@@ -34,6 +34,7 @@ void Engine::handle_mouse_move(int x, int y)
 void Engine::render()
 {
     m_shaders.use();
+    m_chunk.render();
 }
 
 void Engine::move_player(Direction direction)

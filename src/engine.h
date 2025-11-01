@@ -1,8 +1,9 @@
 #pragma once
 
+#include "chunk.h"
 #include "shader.h"
 
-enum class Direction { left, right, down, up, forward, backward };
+enum class Direction { left, right, down, up, front, back };
 
 class Engine
 {
@@ -19,5 +20,6 @@ private:
     int m_window_width;
     int m_window_height;
 
+    Chunk m_chunk;
     ShaderManager m_shaders;
 };

@@ -33,10 +33,10 @@ void handle_keyboard_input(GLFWwindow* window, Engine& engine)
         engine.move_player(Direction::right);
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        engine.move_player(Direction::forward);
+        engine.move_player(Direction::front);
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        engine.move_player(Direction::backward);
+        engine.move_player(Direction::back);
 }
 
 int main()
@@ -63,7 +63,7 @@ int main()
         glfwSetWindowUserPointer(window, &engine);
 
         while (!glfwWindowShouldClose(window)) {
-            glClearColor(1.0, 1.0, 1.0, 1.0);
+            glClearColor(0.0, 0.0, 0.0, 1.0);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             handle_keyboard_input(window, engine);
