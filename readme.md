@@ -39,5 +39,5 @@ Misc:
 
 Priorities:
 - Must be *fast*
-- Written in zig to learn the language
+- Understand everything I'm doing
 - Built for learning purposes (really understand what's going on)

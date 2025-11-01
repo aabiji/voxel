@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 3.17)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(PROJECT voxel)
-project(${PROJECT} LANGUAGES C)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+project(${PROJECT} LANGUAGES C CXX)
 include(FetchContent)
 
 # glfw
@@ -22,15 +25,19 @@ add_library(glad ${PROJECT_SOURCE_DIR}/lib/glad/src/glad.c)
 target_include_directories(glad PUBLIC ${PROJECT_SOURCE_DIR}/lib/glad/include)
 
 # build
-add_executable(
-    ${PROJECT}
-    src/main.c
+add_executable(${PROJECT}
+    src/main.cpp
+    src/engine.cpp
+    src/shader.cpp
 )
 
 target_link_libraries(${PROJECT} PRIVATE glfw glad)
 target_include_directories(${PROJECT} PRIVATE ${PROJECT_SOURCE_DIR}/lib/stb)
 
-target_compile_options(${PROJECT} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_compile_options(
+	${PROJECT} PRIVATE
+	-Wall -Wextra -Wpedantic -Werror -Wno-unused-parameter
+)
 
 # copy assets
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/assets" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
