@@ -22,6 +22,8 @@ Engine::Engine()
     result = m_shaders.assemble();
     if (result.is_err())
         log(Level::fatal, result.error());
+
+    m_spritesheet.load("assets/textures/atlas.png", 64, 3);
 }
 
 void Engine::handle_mouse_move(float x, float y)
@@ -51,5 +53,6 @@ void Engine::render()
     m_shaders.use();
     m_shaders.set_matrix4("projection", m_projection);
     m_shaders.set_matrix4("view", m_view);
+    m_spritesheet.bind(m_shaders, 0);
     m_chunk.render(m_shaders);
 }

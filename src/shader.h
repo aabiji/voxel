@@ -15,6 +15,7 @@ public:
 
     void use();
     void set_vec3(std::string name, Vec3& value);
+    void set_int(std::string name, int value);
     void set_matrix4(std::string name, Matrix4& value);
 private:
     unsigned int m_program;

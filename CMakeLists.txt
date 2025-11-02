@@ -30,6 +30,7 @@ add_executable(${PROJECT}
     src/chunk.cpp
     src/engine.cpp
     src/shader.cpp
+    src/spritesheet.cpp
 )
 
 target_link_libraries(${PROJECT} PRIVATE glfw glad)

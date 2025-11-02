@@ -16,6 +16,12 @@ void ShaderManager::set_vec3(std::string name, Vec3& value)
     glUniform3fv(location, 1, &value.x);
 }
 
+void ShaderManager::set_int(std::string name, int value)
+{
+    int location = glGetUniformLocation(m_program, name.c_str());
+    glUniform1i(location, value);
+}
+
 void ShaderManager::set_matrix4(std::string name, Matrix4& value)
 {
     int location = glGetUniformLocation(m_program, name.c_str());

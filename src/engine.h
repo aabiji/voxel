@@ -2,7 +2,7 @@
 
 #include "camera.h"
 #include "chunk.h"
-#include "shader.h"
+#include "spritesheet.h"
 
 class Engine
 {
@@ -22,5 +22,6 @@ private:
 
     Chunk m_chunk;
     Camera m_camera;
+    Spritesheet m_spritesheet;
     ShaderManager m_shaders;
 };
