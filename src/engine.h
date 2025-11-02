@@ -7,7 +7,7 @@
 class Engine
 {
 public:
-    Engine();
+    Engine(int window_width, int window_height);
     void render();
 
     void handle_resize(int width, int height);
@@ -17,8 +17,6 @@ public:
 private:
     Matrix4 m_projection;
     Matrix4 m_view;
-    int m_window_width;
-    int m_window_height;
 
     Chunk m_chunk;
     Camera m_camera;

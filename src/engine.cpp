@@ -2,14 +2,13 @@
 
 #include "engine.h"
 
-Engine::Engine()
+Engine::Engine(int window_width, int window_height)
 {
-    m_window_width = 900;
-    m_window_height = 700;
-
-    float aspect = float(m_window_width) / float(m_window_height);
+    float aspect = float(window_width) / float(window_height);
     m_projection = Matrix4::projection(0.1, 100.0, 45 * (M_PI / 180), aspect);
     m_view = m_camera.look_at();
+
+    m_spritesheet.load("assets/textures/atlas.png", 64, 3);
 
     auto result = m_shaders.add_shader(GL_VERTEX_SHADER, "assets/shaders/vertex.glsl");
     if (result.is_err())
@@ -22,8 +21,6 @@ Engine::Engine()
     result = m_shaders.assemble();
     if (result.is_err())
         log(Level::fatal, result.error());
-
-    m_spritesheet.load("assets/textures/atlas.png", 64, 3);
 }
 
 void Engine::handle_mouse_move(float x, float y)
@@ -41,11 +38,8 @@ void Engine::move_player(Direction direction)
 void Engine::handle_resize(int width, int height)
 {
     glViewport(0, 0, width, height);
-    m_window_width = width;
-    m_window_height = height;
-
     float aspect = float(width) / float(height);
-    m_projection = Matrix4::projection(0.1, 1.0, 45 * (M_PI / 180), aspect);
+    m_projection = Matrix4::projection(0.1, 100.0, 45 * (M_PI / 180), aspect);
 }
 
 void Engine::render()

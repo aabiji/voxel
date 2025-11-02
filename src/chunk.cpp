@@ -18,8 +18,8 @@ Voxel::Voxel()
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
     glEnableVertexAttribArray(0); // position
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)3);
-    glEnableVertexAttribArray(0); // texture coordinate
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, u));
+    glEnableVertexAttribArray(1); // texture coordinate
 }
 
 Voxel::~Voxel()
@@ -38,15 +38,15 @@ void Voxel::render()
 
 Chunk::Chunk()
 {
-    m_voxels.insert({ Vec3(0, 0, 0), Voxel() });
+    m_voxels.insert({ Vec3(0, 0, 0), true });
 }
 
 void Chunk::render(ShaderManager& shaders)
 {
-    // TODO: make this more efficient!
-    for (auto& [position, voxel] : m_voxels) {
+    for (auto& [position, _] : m_voxels) {
         Matrix4 model;
+        model = model * Matrix4::translate(position);
         shaders.set_matrix4("model", model);
-        voxel.render();
+        m_voxel.render();
     }
 }

@@ -76,10 +76,36 @@ struct Vec3Hasher
 
 struct Matrix4
 {
-    Matrix4() : values{0} {}
+    Matrix4() // default to an identity matrix
+    {
+        for (int i = 0; i < 16; i++) values[i] = 0.0f;
+        values[0] = values[5] = values[10] = values[15] = 1.0f;
+    }
 
-    template <typename... T>
-    Matrix4(T ...args) : values{args...} {}
+    Matrix4 operator*(const Matrix4& m) const
+    {
+        // dot product using column major ordering
+        Matrix4 result;
+        for (int col = 0; col < 4; ++col) {
+            for (int row = 0; row < 4; ++row) {
+                result.values[col * 4 + row] =
+                    values[0 * 4 + row] * m.values[col * 4 + 0] +
+                    values[1 * 4 + row] * m.values[col * 4 + 1] +
+                    values[2 * 4 + row] * m.values[col * 4 + 2] +
+                    values[3 * 4 + row] * m.values[col * 4 + 3];
+            }
+        }
+        return result;
+    }
+
+    static Matrix4 translate(Vec3 offset)
+    {
+        Matrix4 m;
+        m.values[12] = offset.x;
+        m.values[13] = offset.y;
+        m.values[14] = offset.z;
+        return m;
+    }
 
     // Compute the projection matrix:
     // near is the distance to the near plane
@@ -88,18 +114,15 @@ struct Matrix4
     // aspect is the viewport's aspect ratio
     static Matrix4 projection(float near, float far, float fov, float aspect)
     {
-        float tan_half_fov = tan(fov / 2.0f);
-        float a = 1.0 / (aspect * tan_half_fov);
-        float b = 1.0f / tan_half_fov;
-        float c = -(far + near) / (far - near);
-        float d = -(2 * far * near) / (far - near);
-        // because of opengl, this is in column major ordering
-        return Matrix4(
-            a,    0.0f,  0.0f, 0.0f,
-            0.0f, b,     0.0f, 0.0f,
-            0.0f, 0.0f,  c,    d,
-            0.0f, 0.0f, -1.0f, 0.0f
-        );
+        float tan_half = tan(fov / 2.0f);
+        Matrix4 m;
+        m.values[0]  = 1.0f / (aspect * tan_half);
+        m.values[5]  = 1.0f / tan_half;
+        m.values[10] = -(far + near) / (far - near);
+        m.values[11] = -1.0f;
+        m.values[14] = -(2.0f * far * near) / (far - near);
+        m.values[15] = 0.0f;
+        return m;
     }
 
     float values[16];
@@ -128,13 +151,11 @@ struct Quaternion
         return Quaternion(w / length, x / length, y / length, z / length);
     }
 
-    Vec3 rotate(Vec3 v)
+    Vec3 rotate(const Vec3& v) const
     {
-        Vec3 u(x, y, z); // vector part of quaternion
-        float s = w;     // scalar part of quaternion
-        return u * 2 * Vec3::dot(u, v)
-            + u * (s * s - Vec3::dot(u, u))
-            + Vec3::cross(u, v) * 2.0 * s;
+        Vec3 qv(x, y, z);
+        Vec3 t = Vec3::cross(qv, v) * 2.0f;
+        return v + t * w + Vec3::cross(qv, t);
     }
 
     float x, y, z, w;
