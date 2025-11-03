@@ -1,34 +1,32 @@
 #pragma once
 
-#include <unordered_map>
+#include <vector>
 
-#include "shader.h"
-
-class Voxel
-{
-public:
-    Voxel();
-    ~Voxel();
-
-    Voxel(const Voxel&) = delete;
-    Voxel(Voxel&) = delete;
-    Voxel& operator=(const Voxel&) = delete;
-    Voxel& operator=(Voxel&) = delete;
-
-    void render();
-private:
-    unsigned int m_vao; // vertex attribute array
-    unsigned int m_vbo; // vertex buffer object
-    unsigned int m_ebo; // element buffer object
-};
+#include "vertex.h"
 
 class Chunk
 {
 public:
-    Chunk();
-    void render(ShaderManager& shaders);
+    Chunk(Vec3 position) : m_position(position) {}
+    ~Chunk();
+
+    // disable copy and move constructors
+    Chunk& operator=(const Chunk&) = delete;
+    Chunk(const Chunk&) = delete;
+    Chunk& operator=(Chunk&) = delete;
+    Chunk(Chunk&) = delete;
+
+    void generate();
+    void render();
 private:
-    // Map a voxel to its position
-    Voxel m_voxel;
+    void compute_mesh();
+    void init_buffers();
+
+    int m_num_indices;
+    std::vector<unsigned int> m_indices;
+    std::vector<Vertex> m_vertices;
+    unsigned int m_vao, m_vbo, m_ebo;
+
+    Vec3 m_position;
     std::unordered_map<Vec3, bool, Vec3Hasher> m_voxels;
 };

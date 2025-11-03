@@ -8,6 +8,17 @@
 
 ShaderManager::~ShaderManager() { glDeleteProgram(m_program); }
 
+Result ShaderManager::load(std::string vertex_path, std::string fragment_path)
+{
+    auto result = add_shader(GL_VERTEX_SHADER, vertex_path);
+    if (result.is_err()) return result;
+
+    result = add_shader(GL_FRAGMENT_SHADER, fragment_path);
+    if (result.is_err()) return result;
+
+    return assemble();
+}
+
 void ShaderManager::use() { glUseProgram(m_program); }
 
 void ShaderManager::set_vec3(std::string name, Vec3& value)
