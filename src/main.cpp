@@ -18,6 +18,21 @@ void mouse_move_callback(GLFWwindow* window, double xpos, double ypos)
     engine->handle_mouse_move(xpos, ypos);
 }
 
+void keybinding_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+    if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) {
+        GLint polygon_mode[2];
+        glGetIntegerv(GL_POLYGON_MODE, polygon_mode);
+        if (polygon_mode[0] == GL_FILL)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        else
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+}
+
 void handle_keyboard_input(GLFWwindow* window, Engine& engine)
 {
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
@@ -37,9 +52,6 @@ void handle_keyboard_input(GLFWwindow* window, Engine& engine)
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         engine.move_player(Direction::back);
-
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE)
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
 void debug_callback(GLenum source, GLenum type, unsigned int id,
@@ -96,12 +108,14 @@ int main()
 
     glfwSetCursorPosCallback(window, mouse_move_callback);
     glfwSetWindowSizeCallback(window, resize_callback);
+    glfwSetKeyCallback(window, keybinding_callback);
     glfwSwapInterval(1);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPos(window, double(width) / 2, double(height) / 2);
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(debug_callback, nullptr);

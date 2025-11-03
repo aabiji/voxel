@@ -19,7 +19,7 @@ void Spritesheet::load(const char* path, int sprite_size, int num_sprites)
     // create the texture
     glGenTextures(1, &m_texture);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -58,5 +58,6 @@ void Spritesheet::load(const char* path, int sprite_size, int num_sprites)
         }
     }
 
+    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     stbi_image_free(spritesheet_pixels);
 }

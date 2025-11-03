@@ -3,6 +3,9 @@
 #include "chunk.h"
 #include "voxel.h"
 
+// Move the vao, vbo and ebo to the chunk, then do face culling during mesh generation.
+// Then just draw the mesh. That way we're drawing *each chunk*, not each cube.
+
 Voxel::Voxel()
 {
     glGenVertexArrays(1, &m_vao);
@@ -39,6 +42,7 @@ void Voxel::render()
 Chunk::Chunk()
 {
     m_voxels.insert({ Vec3(0, 0, 0), true });
+    m_voxels.insert({ Vec3(1, 0, 0), true });
 }
 
 void Chunk::render(ShaderManager& shaders)
