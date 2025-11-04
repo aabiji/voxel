@@ -7,7 +7,7 @@ class Camera
 {
 public:
     Camera()
-        : m_speed(0.05), m_sensitivity(0.003),
+        : m_speed(0.1), m_sensitivity(0.003),
           m_yaw(0), m_pitch(0),
           m_pos(0, 0, 6), m_up(0, 1, 0), m_front(0, 0, -1),
           m_first_move(true) {}

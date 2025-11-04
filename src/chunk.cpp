@@ -1,6 +1,55 @@
+#include <assert.h>
 #include <glad/glad.h>
+#include <random>
 
 #include "chunk.h"
+
+#include "utils.h"
+
+std::random_device device;
+std::mt19937 generator(device());
+
+// create a random gradient vector for a position.
+// using a hash so the gradient vectors are reproducible
+inline Vec2 get_gradient(int x, int y)
+{
+    int hash = (x < 1) ^ y;
+    float angle = (hash % 360) * (M_PI / 180.0f);
+    return Vec2(angle);
+}
+
+inline float fade(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+
+float perlin_noise(Vec2 point)
+{
+    int x = floor(point.x);
+    int y = floor(point.y);
+
+    // get gradient vectors for each corner
+    Vec2 tl = get_gradient(x, y);
+    Vec2 tr = get_gradient(x + 1, y);
+    Vec2 bl = get_gradient(x, y + 1);
+    Vec2 br = get_gradient(x + 1, y + 1);
+
+    // get the offset vectors (distance from the corners to the point)
+    Vec2 offset_tl = Vec2(point.x - x, point.y - y);
+    Vec2 offset_bl = Vec2(point.x - x, point.y - (y + 1));
+    Vec2 offset_tr = Vec2(point.x - (x + 1), point.y - y);
+    Vec2 offset_br = Vec2(point.x - (x + 1), point.y - (y + 1));
+
+    // smooth the fractional position
+    float u = fade(point.x - x);
+    float v = fade(point.y - y);
+
+    // interpolate the position between the the scalar influence values from each corner
+    float a = std::lerp(Vec2::dot(tl, offset_tl), Vec2::dot(tr, offset_tr), u);
+    float b = std::lerp(Vec2::dot(bl, offset_bl), Vec2::dot(br, offset_br), u);
+    float noise = std::lerp(a, b, v);
+
+    // the perlin noise function outputs values from the range of -√2/2 to √2/2.
+    // here, the output will be normalized to a range of 0 to 1
+    return (noise + 0.707) / 1.414;
+}
 
 Chunk::~Chunk()
 {
@@ -77,15 +126,19 @@ void Chunk::compute_mesh()
 
 void Chunk::generate()
 {
-    // TODO: voxel generation based off of a noise functino goes here:
     m_position = Vec3(-5, -2, -3);
-    for (int x = 0; x < 10; x++) {
-        for (int y = 0; y < 4; y++) {
-            for (int z = 0; z < 6; z++) {
-                m_voxels.insert({ Vec3(x, y, z), true });
-            }
+
+    // procedurally generate the chunk
+    int chunk_size = 16, chunk_height = 20;
+    std::uniform_real_distribution<float> dist(0, 1);
+    for (int x = 0; x < chunk_size; x++) {
+        for (int z = 0; z < chunk_size; z++) {
+            Vec2 point(x + dist(generator), z + dist(generator));
+            int y = round(perlin_noise(point) * chunk_height);
+            m_voxels.insert({ Vec3(x, y, z), true });
         }
     }
+
     compute_mesh();
     init_buffers();
 }
