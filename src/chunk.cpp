@@ -110,8 +110,7 @@ void Chunk::compute_mesh()
                     modified.y += m_position.y - p.y;
                     modified.z += m_position.z + p.z;
                     // only use grass-side sprite for top layer voxels
-                    if (p.y != 0 && modified.w == 0)
-                        modified.w = 2;
+                    if (p.y != 0 && v.w == 0) modified.w = 2;
                     m_vertices.push_back(modified);
                 }
 

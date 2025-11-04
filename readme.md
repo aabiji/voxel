@@ -1,13 +1,10 @@
 Voxel engine
 
-Roadmap:
+TODO:
 Misc:
-    - Custom memory allocator to avoid fragmentation
     - Basic UI for selecting blocks to place
     - Our own version of glm (math for vectors, matrices, projection, quaternions, etc)
 - Physics
-    - 3D camera movement
-    - 3D player movement
     - AABB Collision with blocks (don't clip them or fall through)
 - Rendering
     - Nice lighting
@@ -30,14 +27,10 @@ Misc:
     - Placing blocks
     - Removing blocks, with a nice removing animation
 - Optimizations
-    - Greedy meshing
-    - Face culling
     - Frustum culling
     - Occlusion culling
     - Level of detail
-    - Optionally moving greedy meshing and terrain generation to compute shaders?
 
 Priorities:
 - Must be *fast*
-- Understand everything I'm doing
 - Built for learning purposes (really understand what's going on)

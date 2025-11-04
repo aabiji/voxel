@@ -58,6 +58,5 @@ void Spritesheet::load(const char* path, int sprite_size, int num_sprites)
         }
     }
 
-    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
     stbi_image_free(spritesheet_pixels);
 }
