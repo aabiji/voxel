@@ -3,7 +3,6 @@
 #include <random>
 
 #include "chunk.h"
-
 #include "utils.h"
 
 std::random_device device;
@@ -13,8 +12,9 @@ std::mt19937 generator(device());
 // using a hash so the gradient vectors are reproducible
 inline Vec2 get_gradient(int x, int y)
 {
-    int hash = (x < 1) ^ y;
-    float angle = (hash % 360) * (M_PI / 180.0f);
+    uint32_t seed = x * 374761393u + y * 668265263u; // Large primes
+    seed = (seed ^ (seed >> 13)) * 1274126177u;
+    float angle = (seed & 0xFFFF) / 65535.0f * 2.0f * M_PI;
     return Vec2(angle);
 }
 
@@ -46,9 +46,8 @@ float perlin_noise(Vec2 point)
     float b = std::lerp(Vec2::dot(bl, offset_bl), Vec2::dot(br, offset_br), u);
     float noise = std::lerp(a, b, v);
 
-    // the perlin noise function outputs values from the range of -√2/2 to √2/2.
-    // here, the output will be normalized to a range of 0 to 1
-    return (noise + 0.707) / 1.414;
+    // clamp to a range of 0 to 1
+    return (noise + 1.0) * 0.5f;
 }
 
 Chunk::~Chunk()
@@ -58,6 +57,7 @@ Chunk::~Chunk()
     glDeleteVertexArrays(1, &m_vao);
 }
 
+#include <assert.h>
 void Chunk::init_buffers()
 {
     glGenVertexArrays(1, &m_vao);
@@ -111,6 +111,7 @@ void Chunk::compute_mesh()
                     modified.z += m_position.z + p.z;
                     // only use grass-side sprite for top layer voxels
                     if (p.y != 0 && v.w == 0) modified.w = 2;
+                    log(Level::info, "{}", modified.w);
                     m_vertices.push_back(modified);
                 }
 
@@ -129,10 +130,17 @@ void Chunk::generate()
 
     // procedurally generate the chunk
     int chunk_size = 16, chunk_height = 20;
-    std::uniform_real_distribution<float> dist(0, 1);
+    std::uniform_real_distribution<float> offset_dist(0, 1);
+
+    // the smaller the frequency, the smoother the noise
+    std::uniform_real_distribution<float> frequency_dist(0.05, 0.1);
+    float frequency = frequency_dist(generator);
+
     for (int x = 0; x < chunk_size; x++) {
         for (int z = 0; z < chunk_size; z++) {
-            Vec2 point(x + dist(generator), z + dist(generator));
+            float random_x = x + offset_dist(generator);
+            float random_z = z + offset_dist(generator);
+            Vec2 point(random_x * frequency, random_z * frequency);
             int y = round(perlin_noise(point) * chunk_height);
             m_voxels.insert({ Vec3(x, y, z), true });
         }
@@ -142,7 +150,7 @@ void Chunk::generate()
     init_buffers();
 }
 
-void Chunk::render()
+void Chunk::render(ShaderManager& shaders)
 {
     glBindVertexArray(m_vao);
     glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT, 0);

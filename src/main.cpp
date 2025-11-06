@@ -3,7 +3,6 @@
 
 #include <glad/glad.h>
 
-#include "shader.h"
 #include "engine.h"
 
 void resize_callback(GLFWwindow* window, int width, int height)

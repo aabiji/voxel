@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "shader.h"
 #include "vertex.h"
 
 class Chunk
@@ -17,7 +18,7 @@ public:
     Chunk(Chunk&) = delete;
 
     void generate();
-    void render();
+    void render(ShaderManager& shader);
 private:
     void compute_mesh();
     void init_buffers();

@@ -12,8 +12,10 @@ Engine::Engine(int window_width, int window_height)
 
     m_spritesheet.load("assets/textures/atlas.png", 64, 3);
 
+    glViewport(0, 0, window_width, window_height);
     float aspect = float(window_width) / float(window_height);
-    m_projection = Matrix4::projection(0.1, 100.0, 45 * (M_PI / 180), aspect);
+    log(Level::info, "Aspect: {}, Screen: {}, {}", aspect, window_width, window_height);
+    m_projection = Matrix4::projection(0.1f, 100.0f, 45 * (M_PI / 180.0f), aspect);
     m_view = m_camera.look_at();
 
     m_chunk.generate();
@@ -44,5 +46,5 @@ void Engine::render()
     m_shaders.set_matrix4("projection", m_projection);
     m_shaders.set_matrix4("view", m_view);
     m_spritesheet.bind(m_shaders, 0);
-    m_chunk.render();
+    m_chunk.render(m_shaders);
 }
