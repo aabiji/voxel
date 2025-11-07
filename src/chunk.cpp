@@ -5,9 +5,6 @@
 #include "chunk.h"
 #include "utils.h"
 
-std::random_device device;
-std::mt19937 generator(device());
-
 // create a random gradient vector for a position.
 // using a hash so the gradient vectors are reproducible
 inline Vec2 get_gradient(int x, int y)
@@ -57,7 +54,6 @@ Chunk::~Chunk()
     glDeleteVertexArrays(1, &m_vao);
 }
 
-#include <assert.h>
 void Chunk::init_buffers()
 {
     glGenVertexArrays(1, &m_vao);
@@ -111,7 +107,6 @@ void Chunk::compute_mesh()
                     modified.z += m_position.z + p.z;
                     // only use grass-side sprite for top layer voxels
                     if (p.y != 0 && v.w == 0) modified.w = 2;
-                    log(Level::info, "{}", modified.w);
                     m_vertices.push_back(modified);
                 }
 
@@ -128,6 +123,9 @@ void Chunk::generate()
 {
     m_position = Vec3(-5, -2, -3);
 
+    std::random_device device;
+    std::mt19937 generator(device());
+
     // procedurally generate the chunk
     int chunk_size = 16, chunk_height = 20;
     std::uniform_real_distribution<float> offset_dist(0, 1);
@@ -141,8 +139,10 @@ void Chunk::generate()
             float random_x = x + offset_dist(generator);
             float random_z = z + offset_dist(generator);
             Vec2 point(random_x * frequency, random_z * frequency);
+            // draw bottom layers too
             int y = round(perlin_noise(point) * chunk_height);
-            m_voxels.insert({ Vec3(x, y, z), true });
+            for (int depth = y; depth < chunk_height; depth++)
+                m_voxels.insert({ Vec3(x, depth, z), true });
         }
     }
 

@@ -19,7 +19,7 @@ void mouse_move_callback(GLFWwindow* window, double xpos, double ypos)
 
 void keybinding_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
+    if (key == GLFW_KEY_CAPS_LOCK && action == GLFW_RELEASE)
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
     if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) {

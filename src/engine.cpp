@@ -14,7 +14,6 @@ Engine::Engine(int window_width, int window_height)
 
     glViewport(0, 0, window_width, window_height);
     float aspect = float(window_width) / float(window_height);
-    log(Level::info, "Aspect: {}, Screen: {}, {}", aspect, window_width, window_height);
     m_projection = Matrix4::projection(0.1f, 100.0f, 45 * (M_PI / 180.0f), aspect);
     m_view = m_camera.look_at();
 
