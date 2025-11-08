@@ -182,4 +182,6 @@ TODO: describe how it sounds like.
 Perlin noise has limitations though. It doesn't scale well to higher dimensions, it has
 noticable directional artifacts.
 [Simplex noise](https://en.wikipedia.org/wiki/Simplex_noise) solves that while
-also being easier to implement and more efficient.
+also being easier to implement and more efficient. I don't fully understand
+the math behind the algorith, but the wikipedia page on how to implement the algorithm
+is pretty straight forwards.

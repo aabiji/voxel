@@ -59,6 +59,7 @@ float perlin(float pointx, float pointy)
     return (lerp(a, b, v) + 1.0) * 0.5f;
 }
 
+// our implemention's wrong: https://github.com/SRombauts/SimplexNoise
 float simplex(float pointx, float pointy)
 {
     const float skew = 0.5 * (std::sqrt(3) - 1);
@@ -73,16 +74,12 @@ float simplex(float pointx, float pointy)
     float x = std::floor(skewed_x);
     float y = std::floor(skewed_y);
 
-    // get the fractional parts of the skewed point
-    float fx = skewed_x - x;
-    float fy = skewed_y - y;
-
     // get the skewed vertices in the simplex shape
     // the simplex shape is a triangle because we're doing simplex noise in 2d
     // the triangle's shape depends on the point
     Vec2 skewed_vertices[3] = {
         Vec2(x, y),
-        fx > fy ? Vec2(x + 1, y) : Vec2(x, y + 1),
+        skewed_x - x > skewed_y - y ? Vec2(x + 1, y) : Vec2(x, y + 1),
         Vec2(x + 1, y + 1)
     };
 
@@ -102,7 +99,6 @@ float simplex(float pointx, float pointy)
         sum += contribution;
     }
 
-    // normalize the sum to -1 to 1 then to 0 to 1
     return 0.5f * ((sum * 70.0f) + 1.0f);
 }
 
