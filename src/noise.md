@@ -14,8 +14,8 @@ You might implement a function to generate pcm samples of white noise like so:
 ```cpp
 void generate_white_noise(
     std::mt19937& engine,
-    std::uniform_int_distribution<unsigned short>& dist,
-    std::vector<unsigned short>& samples) {
+    std::uniform_int_distribution<int16_t>& dist,
+    std::vector<int16_t>& samples) {
     for (size_t i = 0; i < samples.size(); i++)
         samples[i] = dist(engine);
 }
@@ -49,16 +49,16 @@ void write_wav_file(int audio_seconds)
 {
     uint32_t frequency = 44100; // samples per second
     uint32_t num_samples = frequency * audio_seconds;
-    int bytes_per_sample = sizeof(unsigned short);
+    int bytes_per_sample = sizeof(int16_t);
     uint32_t num_sample_bytes = num_samples * bytes_per_sample;
 
     std::random_device device;
     std::mt19937 engine(device());
-    std::uniform_int_distribution<unsigned short> distribution(0, 65535);
+    std::uniform_int_distribution<int16_t> distribution(-32767, 32767);
 
-    std::vector<unsigned short> samples;
+    std::vector<int16_t> samples;
     samples.resize(num_samples);
-    generate_white_noise(engine, distribution, samples);
+    // TODO: call noise generation function here
 
     WavHeader header = {
         .total_file_size = num_sample_bytes + 44,
@@ -76,11 +76,12 @@ void write_wav_file(int audio_seconds)
     memcpy(header.fmt_chunk_id, "fmt ", 4);
     memcpy(header.data_chunk_id, "data", 4);
 
-    std::ofstream output("output.wav", std::ios::binary | std::ios::out);
+    std::ofstream output("perlin.wav", std::ios::binary | std::ios::out);
     output.write((char*)&header, sizeof(WavHeader));
-    output.write((char*)samples.data(), samples.size() * sizeof(unsigned short));
+    output.write((char*)samples.data(), samples.size() * sizeof(int16_t));
     output.close();
 }
+
 ```
 
 And as expected, we just get static.
@@ -93,19 +94,18 @@ Brown noise is the sounds like the equivalent of a
 [drunken sailor](https://jamesclear.com/great-speeches/learning-to-learn-by-richard-hamming)
 taking small, random steps, whilst drifting back to a spot.
 
-```cpp
-void generate_brown_noise(
-    std::mt19937& engine,
-    std::vector<unsigned short>& samples) {
+TODO: actually explain how it works
 
-    float value = 65535.0f / 2;
-    std::uniform_real_distribution<float> step_dist(-100, 100);
+```cpp
+void generate_brown_noise(std::mt19937& engine, std::vector<int16_t>& samples) {
+    float value = 0;
     float decay = 0.999f;
+    std::uniform_real_distribution<float> step_dist(-100, 100);
 
     for (size_t i = 0; i < samples.size(); i++) {
         value = value * decay + step_dist(engine);
-        value = std::clamp(value, 0.0f, 65535.0f);
-        samples[i] = (unsigned short)value;
+        value = std::clamp(value, -32767.0f, 32767.0f);
+        samples[i] = (int16_t)value;
     }
 }
 ```
@@ -120,3 +120,66 @@ different is just the way they manipulate the frequency distributions in the aud
 
 But let's at something a little bit more interesting and well known, Perlin noise.
 The algorithm behind Perlin noise is actually quite elegant.
+
+TODO: explain how the algorithm works in detail
+
+```cpp
+// create a random gradient vector for a position.
+// using a hash so the gradient vectors are reproducible
+inline Vec2 get_gradient(int x, int y)
+{
+    uint32_t seed = x * 374761393u + y * 668265263u; // Large primes
+    seed = (seed ^ (seed >> 13)) * 1274126177u;
+    float angle = (seed & 0xFFFF) / 65535.0f * 2.0f * M_PI;
+    return Vec2(angle);
+}
+
+float perlin(float pointx, float pointy)
+{
+    // coordinate of grid cell the point's in
+    int x = floor(pointx);
+    int y = floor(pointy);
+
+    // get gradient vectors for each corner
+    Vec2 tl = get_gradient(x, y);
+    Vec2 tr = get_gradient(x + 1, y);
+    Vec2 bl = get_gradient(x, y + 1);
+    Vec2 br = get_gradient(x + 1, y + 1);
+
+    // get the offset vectors (distance from the corners to the point)
+    Vec2 offset_tl = Vec2(pointx - x, pointy - y);
+    Vec2 offset_bl = Vec2(pointx - x, pointy - (y + 1));
+    Vec2 offset_tr = Vec2(pointx - (x + 1), pointy - y);
+    Vec2 offset_br = Vec2(pointx - (x + 1), pointy - (y + 1));
+
+    // smooth the fractional position
+    float u = fade(pointx - x);
+    float v = fade(pointy - y);
+
+    // interpolate the position between the the scalar influence values from each corner
+    float a = lerp(Vec2::dot(tl, offset_tl), Vec2::dot(tr, offset_tr), u);
+    float b = lerp(Vec2::dot(bl, offset_bl), Vec2::dot(br, offset_br), u);
+
+    // clamp noise to a range of 0 to 1
+    return (lerp(a, b, v) + 1.0) * 0.5f;
+}
+
+void generate_perlin_noise(
+    std::mt19937& engine,
+    std::uniform_int_distribution<int16_t>& dist,
+    std::vector<int16_t>& samples) {
+    float frequency = 440;
+    float sampling_rate = 44100;
+    for (size_t i = 0; i < samples.size(); i++) {
+        float t = (i / sampling_rate) * frequency;
+        samples[i] = (int16_t)(-32767.0f + perlin(t, 0) * 65535.0f);
+    }
+}
+```
+
+TODO: describe how it sounds like.
+
+Perlin noise has limitations though. It doesn't scale well to higher dimensions, it has
+noticable directional artifacts.
+[Simplex noise](https://en.wikipedia.org/wiki/Simplex_noise) solves that while
+also being easier to implement and more efficient.

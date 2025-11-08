@@ -1,6 +1,3 @@
-// Just for fun noise experiments
-
-#include <cmath>
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -9,36 +6,18 @@
 #include <stdint.h>
 #include <vector>
 
-void generate_white_noise(
-    std::mt19937& engine,
-    std::uniform_int_distribution<unsigned short>& dist,
-    std::vector<unsigned short>& samples) {
-    for (size_t i = 0; i < samples.size(); i++)
-        samples[i] = dist(engine);
-}
-
-void generate_brown_noise(
-    std::mt19937& engine,
-    std::vector<unsigned short>& samples) {
-
-    float value = 65535.0f / 2;
-    std::uniform_real_distribution<float> step_dist(-100, 100);
-    float decay = 0.999f;
-
-    for (size_t i = 0; i < samples.size(); i++) {
-        value = value * decay + step_dist(engine);
-        value = std::clamp(value, 0.0f, 65535.0f);
-        samples[i] = (unsigned short)value;
-    }
-}
-
 struct Vec2
 {
     Vec2(float radians) : x(cos(radians)), y(sin(radians)) {}
     Vec2(float a, float b) : x(a), y(b) {}
+    Vec2() : x(0), y(0) {}
+    Vec2 operator-(const Vec2& v) const { return Vec2(x - v.x, y - v.y); }
     static float dot(const Vec2& a, const Vec2& b) { return a.x * b.x + a.y * b.y; }
     float x, y;
 };
+
+inline float fade(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+inline float lerp(float a, float b, float t) { return (1 - t) * a + t * b; }
 
 // create a random gradient vector for a position.
 // using a hash so the gradient vectors are reproducible
@@ -50,12 +29,11 @@ inline Vec2 get_gradient(int x, int y)
     return Vec2(angle);
 }
 
-inline float fade(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
-
-float perlin(Vec2 point)
+float perlin(float pointx, float pointy)
 {
-    int x = floor(point.x);
-    int y = floor(point.y);
+    // coordinate of grid cell the point's in
+    int x = floor(pointx);
+    int y = floor(pointy);
 
     // get gradient vectors for each corner
     Vec2 tl = get_gradient(x, y);
@@ -64,31 +42,100 @@ float perlin(Vec2 point)
     Vec2 br = get_gradient(x + 1, y + 1);
 
     // get the offset vectors (distance from the corners to the point)
-    Vec2 offset_tl = Vec2(point.x - x, point.y - y);
-    Vec2 offset_bl = Vec2(point.x - x, point.y - (y + 1));
-    Vec2 offset_tr = Vec2(point.x - (x + 1), point.y - y);
-    Vec2 offset_br = Vec2(point.x - (x + 1), point.y - (y + 1));
+    Vec2 offset_tl = Vec2(pointx - x, pointy - y);
+    Vec2 offset_bl = Vec2(pointx - x, pointy - (y + 1));
+    Vec2 offset_tr = Vec2(pointx - (x + 1), pointy - y);
+    Vec2 offset_br = Vec2(pointx - (x + 1), pointy - (y + 1));
 
     // smooth the fractional position
-    float u = fade(point.x - x);
-    float v = fade(point.y - y);
+    float u = fade(pointx - x);
+    float v = fade(pointy - y);
 
     // interpolate the position between the the scalar influence values from each corner
-    float a = std::lerp(Vec2::dot(tl, offset_tl), Vec2::dot(tr, offset_tr), u);
-    float b = std::lerp(Vec2::dot(bl, offset_bl), Vec2::dot(br, offset_br), u);
-    float noise = std::lerp(a, b, v);
+    float a = lerp(Vec2::dot(tl, offset_tl), Vec2::dot(tr, offset_tr), u);
+    float b = lerp(Vec2::dot(bl, offset_bl), Vec2::dot(br, offset_br), u);
 
-    // clamp to a range of 0 to 1
-    return (noise + 1.0) * 0.5f;
+    // clamp noise to a range of 0 to 1
+    return (lerp(a, b, v) + 1.0) * 0.5f;
+}
+
+float simplex(float pointx, float pointy)
+{
+    const float skew = 0.5 * (std::sqrt(3) - 1);
+    const float unskew = 1.0f / 6.0f;
+
+    // get the skewed point
+    float skew_offset = (pointx + pointy) * skew;
+    float skewed_x = pointx + skew_offset;
+    float skewed_y = pointy + skew_offset;
+
+    // get the skewed coordinate of the grid cell the point's in
+    float x = std::floor(skewed_x);
+    float y = std::floor(skewed_y);
+
+    // get the fractional parts of the skewed point
+    float fx = skewed_x - x;
+    float fy = skewed_y - y;
+
+    // get the skewed vertices in the simplex shape
+    // the simplex shape is a triangle because we're doing simplex noise in 2d
+    // the triangle's shape depends on the point
+    Vec2 skewed_vertices[3] = {
+        Vec2(x, y),
+        fx > fy ? Vec2(x + 1, y) : Vec2(x, y + 1),
+        Vec2(x + 1, y + 1)
+    };
+
+    float sum = 0;
+    for (int i = 0; i < 3; i++) {
+        // get the unkewed vertex
+        Vec2 skewed = skewed_vertices[i];
+        float unskew_offset = (skewed.x + skewed.y) * unskew;
+        Vec2 vertex(skewed.x - unskew_offset, skewed.y - unskew_offset);
+
+        Vec2 offset = Vec2(pointx, pointy) - vertex;
+        Vec2 gradient = get_gradient(skewed.x, skewed.y);
+
+        // get the radial falloff and the gradient's contribution
+        float t = std::max(0.0f, 0.5f - Vec2::dot(offset, offset));
+        float contribution = t * t * t * t * Vec2::dot(gradient, offset);
+        sum += contribution;
+    }
+
+    // normalize the sum to -1 to 1 then to 0 to 1
+    return 0.5f * ((sum * 70.0f) + 1.0f);
+}
+
+void generate_white_noise(
+    std::mt19937& engine,
+    std::uniform_int_distribution<int16_t>& dist,
+    std::vector<int16_t>& samples) {
+    for (size_t i = 0; i < samples.size(); i++)
+        samples[i] = dist(engine);
+}
+
+void generate_brown_noise(std::mt19937& engine, std::vector<int16_t>& samples) {
+    float value = 0;
+    float decay = 0.999f;
+    std::uniform_real_distribution<float> step_dist(-100, 100);
+
+    for (size_t i = 0; i < samples.size(); i++) {
+        value = value * decay + step_dist(engine);
+        value = std::clamp(value, -32767.0f, 32767.0f);
+        samples[i] = (int16_t)value;
+    }
 }
 
 void generate_perlin_noise(
     std::mt19937& engine,
-    std::uniform_int_distribution<unsigned short>& dist,
-    std::vector<unsigned short>& samples) {
-    // TODO: what are some interesting ways to visualize its output?
+    std::uniform_int_distribution<int16_t>& dist,
+    std::vector<int16_t>& samples) {
+    float frequency = 440;
+    float sampling_rate = 44100;
     for (size_t i = 0; i < samples.size(); i++) {
-        samples[i] = perlin(Vec2(dist(engine), 0)) * 65535;
+        float t = (i / sampling_rate) * frequency;
+        //samples[i] = (int16_t)(-32767.0f + perlin(t, 0) * 65535.0f);
+        samples[i] = (int16_t)(-32767.0f + simplex(t, 0) * 65535.0f);
     }
 }
 
@@ -116,19 +163,18 @@ void write_wav_file(int audio_seconds)
 {
     uint32_t frequency = 44100; // samples per second
     uint32_t num_samples = frequency * audio_seconds;
-    int bytes_per_sample = sizeof(unsigned short);
+    int bytes_per_sample = sizeof(int16_t);
     uint32_t num_sample_bytes = num_samples * bytes_per_sample;
 
     std::random_device device;
     std::mt19937 engine(device());
-    std::uniform_int_distribution<unsigned short> distribution(0, 65535);
+    std::uniform_int_distribution<int16_t> distribution(-32767, 32767);
 
-    std::vector<unsigned short> samples;
+    std::vector<int16_t> samples;
     samples.resize(num_samples);
     //generate_white_noise(engine, distribution, samples);
     //generate_brown_noise(engine, samples);
     generate_perlin_noise(engine, distribution, samples);
-    // TODO: simplex noise
     // TODO: worley noise
     // TODO: fractal noise
 
@@ -150,7 +196,7 @@ void write_wav_file(int audio_seconds)
 
     std::ofstream output("perlin.wav", std::ios::binary | std::ios::out);
     output.write((char*)&header, sizeof(WavHeader));
-    output.write((char*)samples.data(), samples.size() * sizeof(unsigned short));
+    output.write((char*)samples.data(), samples.size() * sizeof(int16_t));
     output.close();
 }
 

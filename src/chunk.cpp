@@ -16,6 +16,7 @@ inline Vec2 get_gradient(int x, int y)
 }
 
 inline float fade(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+inline float lerp(float a, float b, float t) { return (1 - t) * a + t * b; }
 
 float perlin_noise(Vec2 point)
 {
@@ -39,9 +40,9 @@ float perlin_noise(Vec2 point)
     float v = fade(point.y - y);
 
     // interpolate the position between the the scalar influence values from each corner
-    float a = std::lerp(Vec2::dot(tl, offset_tl), Vec2::dot(tr, offset_tr), u);
-    float b = std::lerp(Vec2::dot(bl, offset_bl), Vec2::dot(br, offset_br), u);
-    float noise = std::lerp(a, b, v);
+    float a = lerp(Vec2::dot(tl, offset_tl), Vec2::dot(tr, offset_tr), u);
+    float b = lerp(Vec2::dot(bl, offset_bl), Vec2::dot(br, offset_br), u);
+    float noise = lerp(a, b, v);
 
     // clamp to a range of 0 to 1
     return (noise + 1.0) * 0.5f;
