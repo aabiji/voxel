@@ -6,11 +6,11 @@
 #include <stdint.h>
 #include <vector>
 
+struct vec2 { float x, y; };
 inline float fade(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
 inline float lerp(float a, float b, float t) { return (1 - t) * a + t * b; }
-struct vec2 { float x, y; };
 
-vec2 gradient(int x, int y)
+int hash(int x, int y)
 {
     // xxHash
     int h = x * 3266489917 + y * 668265263;
@@ -19,12 +19,17 @@ vec2 gradient(int x, int y)
     h ^= h >> 13;
     h *= 3266489917;
     h ^= h >> 16;
+    return h;
+}
+
+vec2 gradient(int x, int y)
+{
     // random gradient vector
     vec2 directions[] = {
         vec2{1, 0}, vec2{-1, 0}, vec2{0, 1}, vec2{0, -1},
         vec2{1, 1}, vec2{-1, 1}, vec2{1, -1}, vec2{-1, -1}
     };
-    return directions[h & 7];
+    return directions[hash(x, y) & 7];
 }
 
 float perlin(float x, float y)
@@ -98,36 +103,69 @@ float simplex(float x, float y)
     return 70.0f * sum * 0.5f + 0.5f;
 }
 
-void generate_white_noise(
-    std::mt19937& engine,
-    std::uniform_int_distribution<int16_t>& dist,
-    std::vector<int16_t>& samples) {
-    for (size_t i = 0; i < samples.size(); i++)
-        samples[i] = dist(engine);
-}
+float worley(float x, float y)
+{
+    int cell_x = std::floor(x);
+    int cell_y = std::floor(y);
 
-void generate_brown_noise(std::mt19937& engine, std::vector<int16_t>& samples) {
-    float value = 0;
-    float decay = 0.999f;
-    std::uniform_real_distribution<float> step_dist(-100, 100);
+    float min_dist = std::numeric_limits<float>::max();
 
-    for (size_t i = 0; i < samples.size(); i++) {
-        value = value * decay + step_dist(engine);
-        value = std::clamp(value, -32767.0f, 32767.0f);
-        samples[i] = (int16_t)value;
+    // check the current cell and the 9 neighboring cells
+    for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            int neighbor_x = cell_x + dx;
+            int neighbor_y = cell_y + dy;
+
+            // generate a random feature point's position in this cell (0 to 1 range)
+            int h = hash(neighbor_x, neighbor_y);
+            float point_x = neighbor_x + ((h & 0xFFFF) / 65535.0f);
+            float point_y = neighbor_y + (((h >> 16) & 0xFFFF) / 65535.0f);
+
+            // get the distance to the point
+            float dist_x = x - point_x;
+            float dist_y = y - point_y;
+            float dist = sqrt(dist_x * dist_x + dist_y * dist_y);
+
+            min_dist = std::min(min_dist, dist);
+        }
     }
+
+    return std::clamp(min_dist, 0.0f, 1.0f);
 }
 
-void generate_perlin_noise(
-    std::mt19937& engine,
-    std::uniform_int_distribution<int16_t>& dist,
-    std::vector<int16_t>& samples) {
-    float frequency = 440;
-    float sampling_rate = 44100;
+float white()
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+    return dist(gen);
+}
+
+float brown() {
+    float decay = 0.999f;
+    std::uniform_real_distribution<float> step_dist(-0.1f, 0.1f);
+
+    static float value = 0;
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+
+    value = std::clamp(value * decay + step_dist(gen), 0.0f, 1.0f);
+    return value;
+}
+
+void generate_noise(std::vector<int16_t>& samples, float sampling_rate) {
+    const float frequency = 440;
+
     for (size_t i = 0; i < samples.size(); i++) {
         float t = (i / sampling_rate) * frequency;
-        //samples[i] = (int16_t)(-32767.0f + perlin(t, 0) * 65535.0f);
-        samples[i] = (int16_t)(-32767.0f + simplex(t, 0) * 65535.0f);
+        //float noise = white();
+        float noise = brown();
+        //float noise = perlin(t, 0);
+        //float noise = simplex(t, 0);
+        //float noise = worley(t, 0);
+        // TODO: fractal noise then write article!
+        samples[i] = (int16_t)(-32767.0f + noise * 65535.0f);
     }
 }
 
@@ -151,10 +189,11 @@ struct WavHeader
     uint32_t data_chunk_size;
 };
 
-void write_wav_file(int audio_seconds)
+int main()
 {
+    int seconds = 10;
     uint32_t frequency = 44100; // samples per second
-    uint32_t num_samples = frequency * audio_seconds;
+    uint32_t num_samples = frequency * seconds;
     int bytes_per_sample = sizeof(int16_t);
     uint32_t num_sample_bytes = num_samples * bytes_per_sample;
 
@@ -164,11 +203,7 @@ void write_wav_file(int audio_seconds)
 
     std::vector<int16_t> samples;
     samples.resize(num_samples);
-    //generate_white_noise(engine, distribution, samples);
-    //generate_brown_noise(engine, samples);
-    generate_perlin_noise(engine, distribution, samples);
-    // TODO: worley noise
-    // TODO: fractal noise
+    generate_noise(samples, frequency);
 
     WavHeader header = {
         .total_file_size = num_sample_bytes + 44,
@@ -189,10 +224,4 @@ void write_wav_file(int audio_seconds)
     std::ofstream output("perlin.wav", std::ios::binary | std::ios::out);
     output.write((char*)&header, sizeof(WavHeader));
     output.write((char*)samples.data(), samples.size() * sizeof(int16_t));
-    output.close();
-}
-
-int main()
-{
-    write_wav_file(10);
-}
+    output.close();}
