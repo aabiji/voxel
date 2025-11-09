@@ -5,47 +5,55 @@
 #include "chunk.h"
 #include "utils.h"
 
-// create a random gradient vector for a position.
-// using a hash so the gradient vectors are reproducible
-inline Vec2 get_gradient(int x, int y)
-{
-    uint32_t seed = x * 374761393u + y * 668265263u; // Large primes
-    seed = (seed ^ (seed >> 13)) * 1274126177u;
-    float angle = (seed & 0xFFFF) / 65535.0f * 2.0f * M_PI;
-    return Vec2(angle);
-}
-
 inline float fade(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
 inline float lerp(float a, float b, float t) { return (1 - t) * a + t * b; }
+struct Vec2 { float x, y; };
 
-float perlin_noise(Vec2 point)
+Vec2 gradient(int x, int y)
 {
-    int x = floor(point.x);
-    int y = floor(point.y);
+    // xxHash
+    int h = x * 3266489917 + y * 668265263;
+    h ^= h >> 15;
+    h *= 2246822519;
+    h ^= h >> 13;
+    h *= 3266489917;
+    h ^= h >> 16;
+    // random gradient vector
+    Vec2 directions[] = {
+        Vec2{1, 0}, Vec2{-1, 0}, Vec2{0, 1}, Vec2{0, -1},
+        Vec2{1, 1}, Vec2{-1, 1}, Vec2{1, -1}, Vec2{-1, -1}
+    };
+    return directions[h & 7];
+}
 
-    // get gradient vectors for each corner
-    Vec2 tl = get_gradient(x, y);
-    Vec2 tr = get_gradient(x + 1, y);
-    Vec2 bl = get_gradient(x, y + 1);
-    Vec2 br = get_gradient(x + 1, y + 1);
+float perlin_noise(float x, float y)
+{
+    // get the grid cell the point's in and
+    // the direction of the point in that grid cell
+    int X = std::floor(x);
+    int Y = std::floor(y);
+    float dx = x - X;
+    float dy = y - Y;
 
-    // get the offset vectors (distance from the corners to the point)
-    Vec2 offset_tl = Vec2(point.x - x, point.y - y);
-    Vec2 offset_bl = Vec2(point.x - x, point.y - (y + 1));
-    Vec2 offset_tr = Vec2(point.x - (x + 1), point.y - y);
-    Vec2 offset_br = Vec2(point.x - (x + 1), point.y - (y + 1));
+    // get the gradient vectors for each corner
+    Vec2 gtl = gradient(X, Y);
+    Vec2 gtr = gradient(X + 1, Y);
+    Vec2 gbl = gradient(X, Y + 1);
+    Vec2 gbr = gradient(X + 1, Y + 1);
 
-    // smooth the fractional position
-    float u = fade(point.x - x);
-    float v = fade(point.y - y);
+    // compute dot products to get the gradient values for each corner
+    float vtl = gtl.x * dx       + gtl.y * dy;
+    float vtr = gtr.x * (dx - 1) + gtr.y * dy;
+    float vbl = gbl.x * dx       + gbl.y * (dy - 1);
+    float vbr = gbr.x * (dx - 1) + gbr.y * (dy - 1);
 
-    // interpolate the position between the the scalar influence values from each corner
-    float a = lerp(Vec2::dot(tl, offset_tl), Vec2::dot(tr, offset_tr), u);
-    float b = lerp(Vec2::dot(bl, offset_bl), Vec2::dot(br, offset_br), u);
-    float noise = lerp(a, b, v);
+    // interpolate those values
+    float a = lerp(vtl, vtr, fade(dx));
+    float b = lerp(vbl, vbr, fade(dx));
+    float noise = lerp(a, b, fade(dy));
 
-    // clamp to a range of 0 to 1
-    return (noise + 1.0) * 0.5f;
+    // normalize to a range of 0 to 1
+    return noise * 0.7f + 0.5f;
 }
 
 Chunk::~Chunk()
@@ -139,9 +147,9 @@ void Chunk::generate()
         for (int z = 0; z < chunk_size; z++) {
             float random_x = x + offset_dist(generator);
             float random_z = z + offset_dist(generator);
-            Vec2 point(random_x * frequency, random_z * frequency);
+            float noise = perlin_noise(random_x * frequency, random_z * frequency);
             // draw bottom layers too
-            int y = round(perlin_noise(point) * chunk_height);
+            int y = round(noise * chunk_height);
             for (int depth = y; depth < chunk_height; depth++)
                 m_voxels.insert({ Vec3(x, depth, z), true });
         }

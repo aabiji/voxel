@@ -119,7 +119,8 @@ There are other types of noise, like Pink noise, and Blue noise. What makes them
 different is just the way they manipulate the frequency distributions in the audio.
 
 But let's at something a little bit more interesting and well known, Perlin noise.
-The algorithm behind Perlin noise is actually quite elegant.
+The algorithm behind Perlin noise is actually quite elegant. Note that my implementation
+is not optimized for the sake of clarity.
 
 TODO: explain how the algorithm works in detail
 
@@ -185,3 +186,8 @@ noticable directional artifacts.
 also being easier to implement and more efficient. I don't fully understand
 the math behind the algorith, but the wikipedia page on how to implement the algorithm
 is pretty straight forwards.
+
+https://en.wikipedia.org/wiki/Perlin_noise
+https://github.com/SRombauts/SimplexNoise/blob/master/src/SimplexNoise.cpp
+https://en.wikipedia.org/wiki/Simplex_noise
+https://iquilezles.org/articles/voronoise/

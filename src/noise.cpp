@@ -6,100 +6,96 @@
 #include <stdint.h>
 #include <vector>
 
-struct Vec2
-{
-    Vec2(float radians) : x(cos(radians)), y(sin(radians)) {}
-    Vec2(float a, float b) : x(a), y(b) {}
-    Vec2() : x(0), y(0) {}
-    Vec2 operator-(const Vec2& v) const { return Vec2(x - v.x, y - v.y); }
-    static float dot(const Vec2& a, const Vec2& b) { return a.x * b.x + a.y * b.y; }
-    float x, y;
-};
-
 inline float fade(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
 inline float lerp(float a, float b, float t) { return (1 - t) * a + t * b; }
+struct vec2 { float x, y; };
 
-// create a random gradient vector for a position.
-// using a hash so the gradient vectors are reproducible
-inline Vec2 get_gradient(int x, int y)
+vec2 gradient(int x, int y)
 {
-    uint32_t seed = x * 374761393u + y * 668265263u; // Large primes
-    seed = (seed ^ (seed >> 13)) * 1274126177u;
-    float angle = (seed & 0xFFFF) / 65535.0f * 2.0f * M_PI;
-    return Vec2(angle);
-}
-
-float perlin(float pointx, float pointy)
-{
-    // coordinate of grid cell the point's in
-    int x = floor(pointx);
-    int y = floor(pointy);
-
-    // get gradient vectors for each corner
-    Vec2 tl = get_gradient(x, y);
-    Vec2 tr = get_gradient(x + 1, y);
-    Vec2 bl = get_gradient(x, y + 1);
-    Vec2 br = get_gradient(x + 1, y + 1);
-
-    // get the offset vectors (distance from the corners to the point)
-    Vec2 offset_tl = Vec2(pointx - x, pointy - y);
-    Vec2 offset_bl = Vec2(pointx - x, pointy - (y + 1));
-    Vec2 offset_tr = Vec2(pointx - (x + 1), pointy - y);
-    Vec2 offset_br = Vec2(pointx - (x + 1), pointy - (y + 1));
-
-    // smooth the fractional position
-    float u = fade(pointx - x);
-    float v = fade(pointy - y);
-
-    // interpolate the position between the the scalar influence values from each corner
-    float a = lerp(Vec2::dot(tl, offset_tl), Vec2::dot(tr, offset_tr), u);
-    float b = lerp(Vec2::dot(bl, offset_bl), Vec2::dot(br, offset_br), u);
-
-    // clamp noise to a range of 0 to 1
-    return (lerp(a, b, v) + 1.0) * 0.5f;
-}
-
-// our implemention's wrong: https://github.com/SRombauts/SimplexNoise
-float simplex(float pointx, float pointy)
-{
-    const float skew = 0.5 * (std::sqrt(3) - 1);
-    const float unskew = 1.0f / 6.0f;
-
-    // get the skewed point
-    float skew_offset = (pointx + pointy) * skew;
-    float skewed_x = pointx + skew_offset;
-    float skewed_y = pointy + skew_offset;
-
-    // get the skewed coordinate of the grid cell the point's in
-    float x = std::floor(skewed_x);
-    float y = std::floor(skewed_y);
-
-    // get the skewed vertices in the simplex shape
-    // the simplex shape is a triangle because we're doing simplex noise in 2d
-    // the triangle's shape depends on the point
-    Vec2 skewed_vertices[3] = {
-        Vec2(x, y),
-        skewed_x - x > skewed_y - y ? Vec2(x + 1, y) : Vec2(x, y + 1),
-        Vec2(x + 1, y + 1)
+    // xxHash
+    int h = x * 3266489917 + y * 668265263;
+    h ^= h >> 15;
+    h *= 2246822519;
+    h ^= h >> 13;
+    h *= 3266489917;
+    h ^= h >> 16;
+    // random gradient vector
+    vec2 directions[] = {
+        vec2{1, 0}, vec2{-1, 0}, vec2{0, 1}, vec2{0, -1},
+        vec2{1, 1}, vec2{-1, 1}, vec2{1, -1}, vec2{-1, -1}
     };
+    return directions[h & 7];
+}
 
-    float sum = 0;
-    for (int i = 0; i < 3; i++) {
-        // get the unkewed vertex
-        Vec2 skewed = skewed_vertices[i];
-        float unskew_offset = (skewed.x + skewed.y) * unskew;
-        Vec2 vertex(skewed.x - unskew_offset, skewed.y - unskew_offset);
+float perlin(float x, float y)
+{
+    // get the grid cell the point's in and
+    // the direction of the point in that grid cell
+    int X = std::floor(x);
+    int Y = std::floor(y);
+    float dx = x - X;
+    float dy = y - Y;
 
-        Vec2 offset = Vec2(pointx, pointy) - vertex;
-        Vec2 gradient = get_gradient(skewed.x, skewed.y);
+    // get the gradient vectors for each corner
+    vec2 gtl = gradient(X, Y);
+    vec2 gtr = gradient(X + 1, Y);
+    vec2 gbl = gradient(X, Y + 1);
+    vec2 gbr = gradient(X + 1, Y + 1);
 
-        // get the radial falloff and the gradient's contribution
-        float t = std::max(0.0f, 0.5f - Vec2::dot(offset, offset));
-        float contribution = t * t * t * t * Vec2::dot(gradient, offset);
-        sum += contribution;
-    }
+    // compute dot products to get the gradient values for each corner
+    float vtl = gtl.x * dx       + gtl.y * dy;
+    float vtr = gtr.x * (dx - 1) + gtr.y * dy;
+    float vbl = gbl.x * dx       + gbl.y * (dy - 1);
+    float vbr = gbr.x * (dx - 1) + gbr.y * (dy - 1);
 
-    return 0.5f * ((sum * 70.0f) + 1.0f);
+    // interpolate those values
+    float a = lerp(vtl, vtr, fade(dx));
+    float b = lerp(vbl, vbr, fade(dx));
+    float noise = lerp(a, b, fade(dy));
+    return noise * 0.7f + 0.5f;
+}
+
+float simplex(float x, float y)
+{
+    // get the coordinate of the simplex cell the point's in
+    float skew = 0.5f * (sqrt(3.0f) - 1.0f);
+    int i = std::floor(x + (x + y) * skew);
+    int j = std::floor(y + (x + y) * skew);
+
+    // unskew back to (x, y) space
+    float unskew = (3.0f - sqrt(3.0f)) / 6.0f;
+    float x0 = x - (i - (i + j) * unskew);
+    float y0 = y - (j - (i + j) * unskew);
+
+    // determine the simplex the point's in (upper or lower triangle)
+    int i1 = x0 > y0 ? 1 : 0;
+    int j1 = x0 > y0 ? 0 : 1;
+
+    // get the gradients for the corner
+    vec2 g0 = gradient(i, j);
+    vec2 g1 = gradient(i + i1, j + j1);
+    vec2 g2 = gradient(i + 1, j + 1);
+
+    // get the corner coordinates
+    float x1 = x0 - i1 + unskew;
+    float y1 = y0 - j1 + unskew;
+    float x2 = x0 - 1.0f + 2.0f * unskew;
+    float y2 = y0 - 1.0f + 2.0f * unskew;
+
+    // sum the contributions from each corner
+    float sum = 0.0f;
+
+    float t0 = 0.5f - x0 * x0 - y0 * y0;
+    if (t0 > 0) sum += t0 * t0 * t0 * t0 * (g0.x * x0 + g0.y * y0);
+
+    float t1 = 0.5f - x1 * x1 - y1 * y1;
+    if (t1 > 0) sum += t1 * t1 * t1 * t1 * (g1.x * x1 + g1.y * y1);
+
+    float t2 = 0.5f - x2 * x2 - y2 * y2;
+    if (t2 > 0) sum += t2 * t2 * t2 * t2 * (g2.x * x2 + g2.y * y2);
+
+    // normalize to a range of 0 to 1
+    return 70.0f * sum * 0.5f + 0.5f;
 }
 
 void generate_white_noise(

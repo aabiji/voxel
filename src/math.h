@@ -3,17 +3,7 @@
 #include <functional>
 #include <math.h>
 
-struct Vec2
-{
-    Vec2() : x(0), y(0) {}
-    Vec2(float a, float b) : x(a), y(b) {}
-    Vec2(float radians) : x(cos(radians)), y(sin(radians)) {}
-
-    Vec2 operator-(const Vec2& v) const { return Vec2(x - v.x, y - v.y); }
-    static float dot(const Vec2& a, const Vec2& b) { return a.x * b.x + a.y * b.y; }
-
-    float x, y;
-};
+struct Vec2 { float x, y; };
 
 struct Vec3
 {
