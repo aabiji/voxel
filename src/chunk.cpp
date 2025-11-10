@@ -6,8 +6,6 @@
 #include "utils.h"
 
 inline float fade(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
-inline float lerp(float a, float b, float t) { return (1 - t) * a + t * b; }
-struct Vec2 { float x, y; };
 
 Vec2 gradient(int x, int y)
 {
@@ -48,12 +46,38 @@ float perlin_noise(float x, float y)
     float vbr = gbr.x * (dx - 1) + gbr.y * (dy - 1);
 
     // interpolate those values
-    float a = lerp(vtl, vtr, fade(dx));
-    float b = lerp(vbl, vbr, fade(dx));
-    float noise = lerp(a, b, fade(dy));
+    float a = std::lerp(vtl, vtr, fade(dx));
+    float b = std::lerp(vbl, vbr, fade(dx));
+    float noise = std::lerp(a, b, fade(dy));
 
     // normalize to a range of 0 to 1
     return noise * 0.7f + 0.5f;
+}
+
+Chunk::Chunk(Vec3 position) : m_position(position)
+{
+    std::random_device device;
+    std::mt19937 generator(device());
+
+    // procedurally generate the chunk
+    // the smaller the frequency, the smoother the noise
+    float frequency = 0.02;
+    std::uniform_real_distribution<float> offset_dist(0, 1);
+
+    for (int x = 0; x < CHUNK_SIZE; x++) {
+        for (int z = 0; z < CHUNK_SIZE; z++) {
+            float random_x = x + offset_dist(generator);
+            float random_z = z + offset_dist(generator);
+            float noise = perlin_noise(random_x * frequency, random_z * frequency);
+            // draw bottom layers too
+            int y = round(noise * CHUNK_HEIGHT);
+            for (int depth = y; depth < CHUNK_HEIGHT; depth++)
+                m_voxels.insert({ Vec3(x, depth, z), true });
+        }
+    }
+
+    compute_mesh();
+    init_buffers();
 }
 
 Chunk::~Chunk()
@@ -61,6 +85,12 @@ Chunk::~Chunk()
     glDeleteBuffers(1, &m_vbo);
     glDeleteBuffers(1, &m_ebo);
     glDeleteVertexArrays(1, &m_vao);
+}
+
+void Chunk::render()
+{
+    glBindVertexArray(m_vao);
+    glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT, 0);
 }
 
 void Chunk::init_buffers()
@@ -128,39 +158,11 @@ void Chunk::compute_mesh()
     }
 }
 
-void Chunk::generate()
+float Chunk::get_surface_y(float x, float z)
 {
-    m_position = Vec3(-5, -2, -3);
-
-    std::random_device device;
-    std::mt19937 generator(device());
-
-    // procedurally generate the chunk
-    int chunk_size = 16, chunk_height = 20;
-    std::uniform_real_distribution<float> offset_dist(0, 1);
-
-    // the smaller the frequency, the smoother the noise
-    std::uniform_real_distribution<float> frequency_dist(0.05, 0.1);
-    float frequency = frequency_dist(generator);
-
-    for (int x = 0; x < chunk_size; x++) {
-        for (int z = 0; z < chunk_size; z++) {
-            float random_x = x + offset_dist(generator);
-            float random_z = z + offset_dist(generator);
-            float noise = perlin_noise(random_x * frequency, random_z * frequency);
-            // draw bottom layers too
-            int y = round(noise * chunk_height);
-            for (int depth = y; depth < chunk_height; depth++)
-                m_voxels.insert({ Vec3(x, depth, z), true });
-        }
+    for (int y = 0; y < CHUNK_HEIGHT; y++) {
+        if (m_voxels.count(Vec3(x, y, z)))
+            return -y;
     }
-
-    compute_mesh();
-    init_buffers();
-}
-
-void Chunk::render(ShaderManager& shaders)
-{
-    glBindVertexArray(m_vao);
-    glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT, 0);
+    return 0;
 }

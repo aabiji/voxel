@@ -9,21 +9,20 @@ public:
     Camera()
         : m_speed(0.1), m_sensitivity(0.003),
           m_yaw(0), m_pitch(0),
-          m_pos(0, 0, 6), m_up(0, 1, 0), m_front(0, 0, -1),
+          m_pos(0, 0, 0), m_up(0, 1, 0), m_front(0, 0, -1),
           m_first_move(true) {}
 
-    void move(Direction direction)
-    {
-        Vec3 up = m_up * m_speed;
-        Vec3 front = m_front * m_speed;
-        Vec3 right = Vec3::cross(m_front, m_up).normalize() * m_speed;
+    Vec3 get_pos() { return m_pos; }
 
-        if (direction == Direction::up) m_pos += up;
-        if (direction == Direction::down) m_pos -= up;
-        if (direction == Direction::front) m_pos += front;
-        if (direction == Direction::back) m_pos -= front;
-        if (direction == Direction::right) m_pos += right;
-        if (direction == Direction::left) m_pos -= right;
+    void move(int offsetx, int offsetz)
+    {
+        // TODO: movement based on m_front
+        Vec3 right = Vec3(0, 0, m_speed);
+        Vec3 front = Vec3(m_speed, 0, 0);
+        if (offsetz == 1) m_pos += front;
+        if (offsetz == -1) m_pos -= front;
+        if (offsetx == 1) m_pos += right;
+        if (offsetx == -1) m_pos -= right;
     }
 
     void rotate(float mousex, float mousey)
@@ -53,6 +52,14 @@ public:
         m_rotation = (yaw * pitch).normalize();
         m_front = m_rotation.rotate(Vec3(0, 0, -1));
         m_up = m_rotation.rotate(Vec3(0, 1, 0));
+    }
+
+    // TODO: accelerated falling
+    void fall(float surface_y)
+    {
+        const float gravity = -0.03;
+        m_pos += Vec3(0, gravity, 0);
+        m_pos.y = std::max(surface_y, m_pos.y);
     }
 
     Matrix4 look_at()

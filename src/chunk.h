@@ -2,13 +2,15 @@
 
 #include <vector>
 
-#include "shader.h"
 #include "vertex.h"
+
+const int CHUNK_SIZE = 20;
+const int CHUNK_HEIGHT = 20;
 
 class Chunk
 {
 public:
-    Chunk(Vec3 position) : m_position(position) {}
+    Chunk(Vec3 position);
     ~Chunk();
 
     // disable copy and move constructors
@@ -17,16 +19,17 @@ public:
     Chunk& operator=(Chunk&) = delete;
     Chunk(Chunk&) = delete;
 
-    void generate();
-    void render(ShaderManager& shader);
+    void render();
+    float get_surface_y(float x, float z);
 private:
     void compute_mesh();
     void init_buffers();
 
     int m_num_indices;
+    unsigned int m_vao, m_vbo, m_ebo;
+    // cleared after the chunk is generated
     std::vector<unsigned int> m_indices;
     std::vector<Vertex> m_vertices;
-    unsigned int m_vao, m_vbo, m_ebo;
 
     Vec3 m_position;
     std::unordered_map<Vec3, bool, Vec3Hasher> m_voxels;

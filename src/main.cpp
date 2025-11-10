@@ -22,6 +22,7 @@ void keybinding_callback(GLFWwindow* window, int key, int scancode, int action, 
     if (key == GLFW_KEY_CAPS_LOCK && action == GLFW_RELEASE)
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
+    // toggle wireframe mode
     if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) {
         GLint polygon_mode[2];
         glGetIntegerv(GL_POLYGON_MODE, polygon_mode);
@@ -34,23 +35,17 @@ void keybinding_callback(GLFWwindow* window, int key, int scancode, int action, 
 
 void handle_keyboard_input(GLFWwindow* window, Engine& engine)
 {
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-        engine.move_player(Direction::down);
-
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-        engine.move_player(Direction::up);
-
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        engine.move_player(Direction::left);
+        engine.move_player(-1, 0);
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        engine.move_player(Direction::right);
+        engine.move_player(1, 0);
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        engine.move_player(Direction::front);
+        engine.move_player(0, 1);
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        engine.move_player(Direction::back);
+        engine.move_player(0, -1);
 }
 
 void debug_callback(GLenum source, GLenum type, unsigned int id,
@@ -125,10 +120,11 @@ int main()
         glfwSetWindowUserPointer(window, &engine);
 
         while (!glfwWindowShouldClose(window)) {
-            glClearColor(0.0, 0.0, 0.0, 1.0);
+            glClearColor(0.5, 0.8, 1.0, 1.0);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             handle_keyboard_input(window, engine);
+            engine.update();
             engine.render();
 
             glfwSwapBuffers(window);
