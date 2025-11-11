@@ -160,6 +160,7 @@ void Chunk::compute_mesh()
 
 float Chunk::get_surface_y(float x, float z)
 {
+    // find the y value of the top layer voxel
     for (int y = 0; y < CHUNK_HEIGHT; y++) {
         if (m_voxels.count(Vec3(x, y, z)))
             return -y;

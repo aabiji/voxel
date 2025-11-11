@@ -7,22 +7,13 @@ class Camera
 {
 public:
     Camera()
-        : m_speed(0.1), m_sensitivity(0.003),
-          m_yaw(0), m_pitch(0),
-          m_pos(0, 0, 0), m_up(0, 1, 0), m_front(0, 0, -1),
-          m_first_move(true) {}
-
-    Vec3 get_pos() { return m_pos; }
-
-    void move(int offsetx, int offsetz)
     {
-        // TODO: movement based on m_front
-        Vec3 right = Vec3(0, 0, m_speed);
-        Vec3 front = Vec3(m_speed, 0, 0);
-        if (offsetz == 1) m_pos += front;
-        if (offsetz == -1) m_pos -= front;
-        if (offsetx == 1) m_pos += right;
-        if (offsetx == -1) m_pos -= right;
+        position = Vec3(0, 0, 0);
+        up = Vec3(0, 1, 0);
+        front = Vec3(0, 0, -1),
+        m_sensitivity = 0.003;
+        m_yaw = m_pitch = 0;
+        m_first_move = true;
     }
 
     void rotate(float mousex, float mousey)
@@ -50,52 +41,44 @@ public:
 
         // rotate vectors
         m_rotation = (yaw * pitch).normalize();
-        m_front = m_rotation.rotate(Vec3(0, 0, -1));
-        m_up = m_rotation.rotate(Vec3(0, 1, 0));
-    }
-
-    // TODO: accelerated falling
-    void fall(float surface_y)
-    {
-        const float gravity = -0.03;
-        m_pos += Vec3(0, gravity, 0);
-        m_pos.y = std::max(surface_y, m_pos.y);
+        front = m_rotation.rotate(Vec3(0, 0, -1));
+        up = m_rotation.rotate(Vec3(0, 1, 0));
     }
 
     Matrix4 look_at()
     {
-        Vec3 front = m_front.normalize();
-        Vec3 right = Vec3::cross(front, m_up).normalize();
-        Vec3 up = Vec3::cross(right, front);
+        Vec3 f = front.normalize();
+        Vec3 right = Vec3::cross(f, up).normalize();
+        Vec3 up = Vec3::cross(right, f);
 
         Matrix4 m;
         m.values[0]  = right.x;
         m.values[1]  = up.x;
-        m.values[2]  = -front.x;
+        m.values[2]  = -f.x;
         m.values[3]  = 0.0f;
 
         m.values[4]  = right.y;
         m.values[5]  = up.y;
-        m.values[6]  = -front.y;
+        m.values[6]  = -f.y;
         m.values[7]  = 0.0f;
 
         m.values[8]  = right.z;
         m.values[9]  = up.z;
-        m.values[10] = -front.z;
+        m.values[10] = -f.z;
         m.values[11] = 0.0f;
 
-        m.values[12] = -Vec3::dot(right, m_pos);
-        m.values[13] = -Vec3::dot(up, m_pos);
-        m.values[14] =  Vec3::dot(front, m_pos);
+        m.values[12] = -Vec3::dot(right, position);
+        m.values[13] = -Vec3::dot(up, position);
+        m.values[14] =  Vec3::dot(f, position);
         m.values[15] = 1.0f;
         return m;
     }
 
+    Vec3 position, up, front;
+
 private:
-    float m_speed;
     float m_sensitivity;
     float m_yaw, m_pitch;
-    Vec3 m_pos, m_up, m_front;
     float m_prev_x, m_prev_y;
     Quaternion m_rotation;
     bool m_first_move;

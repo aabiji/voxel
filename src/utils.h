@@ -47,6 +47,12 @@ private:
 enum class Level { info, warning, error, fatal };
 
 template <typename ...Args>
+void log(std::string_view fmt, Args&&... args)
+{
+    std::cout << std::vformat(fmt, std::make_format_args(args...)) << "\n";
+}
+
+template <typename ...Args>
 void log(Level level, std::string_view fmt, Args&&... args)
 {
     std::string red = "\x1b[31m";
@@ -55,9 +61,9 @@ void log(Level level, std::string_view fmt, Args&&... args)
     std::string reset = "\x1b[0m";
     std::string prefix =
         level == Level::info ? cyan : level == Level::warning ? yellow : red;
-    auto msg = std::vformat(fmt, std::make_format_args(args...));
-
-    std::cout << prefix << msg << reset << "\n";
+    std::cout << prefix;
+    log(fmt, args...);
+    std::cout << reset << "\n";
     if (level == Level::fatal)
         exit(EXIT_FAILURE);
 }

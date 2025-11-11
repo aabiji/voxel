@@ -19,8 +19,11 @@ void mouse_move_callback(GLFWwindow* window, double xpos, double ypos)
 
 void keybinding_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (key == GLFW_KEY_CAPS_LOCK && action == GLFW_RELEASE)
+    Engine* engine = static_cast<Engine*>(glfwGetWindowUserPointer(window));
+    if (key == GLFW_KEY_CAPS_LOCK && action == GLFW_RELEASE) {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        engine->disable_camera_movement();
+    }
 
     // toggle wireframe mode
     if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) {
@@ -124,7 +127,6 @@ int main()
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             handle_keyboard_input(window, engine);
-            engine.update();
             engine.render();
 
             glfwSwapBuffers(window);

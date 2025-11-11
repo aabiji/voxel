@@ -21,19 +21,19 @@ Result ShaderManager::load(std::string vertex_path, std::string fragment_path)
 
 void ShaderManager::use() { glUseProgram(m_program); }
 
-void ShaderManager::set_vec3(std::string name, Vec3& value)
+void ShaderManager::set_vec3(std::string name, const Vec3& value)
 {
     int location = glGetUniformLocation(m_program, name.c_str());
     glUniform3fv(location, 1, &value.x);
 }
 
-void ShaderManager::set_int(std::string name, int value)
+void ShaderManager::set_int(std::string name, const int value)
 {
     int location = glGetUniformLocation(m_program, name.c_str());
     glUniform1i(location, value);
 }
 
-void ShaderManager::set_matrix4(std::string name, Matrix4& value)
+void ShaderManager::set_matrix4(std::string name, const Matrix4& value)
 {
     int location = glGetUniformLocation(m_program, name.c_str());
     glUniformMatrix4fv(location, 1, GL_FALSE, value.values);

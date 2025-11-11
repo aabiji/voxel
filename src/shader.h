@@ -11,9 +11,9 @@ public:
     ~ShaderManager();
 
     void use();
-    void set_vec3(std::string name, Vec3& value);
-    void set_int(std::string name, int value);
-    void set_matrix4(std::string name, Matrix4& value);
+    void set_vec3(std::string name, const Vec3& value);
+    void set_int(std::string name, const int value);
+    void set_matrix4(std::string name, const Matrix4& value);
     Result load(std::string vertex_path, std::string fragment_path);
 private:
     Result add_shader(int type, std::string path);

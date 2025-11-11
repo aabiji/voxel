@@ -3,10 +3,16 @@
 #include <functional>
 #include <math.h>
 
-struct Vec2 { float x, y; };
+struct Vec2
+{
+    Vec2() : x(0), y(0) {}
+    Vec2(float a, float b) : x(a), y(b) {}
+    float x, y;
+};
 
 struct Vec3
 {
+    Vec3() : x(0), y(0), z(0) {}
     Vec3(float a, float b, float c) : x(a), y(b), z(c) {}
 
     bool operator==(const Vec3& v) const
