@@ -26,7 +26,7 @@ void keybinding_callback(GLFWwindow* window, int key, int scancode, int action, 
     }
 
     // toggle wireframe mode
-    if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) {
+    if (key == GLFW_KEY_M && action == GLFW_RELEASE) {
         GLint polygon_mode[2];
         glGetIntegerv(GL_POLYGON_MODE, polygon_mode);
         if (polygon_mode[0] == GL_FILL)
@@ -39,16 +39,19 @@ void keybinding_callback(GLFWwindow* window, int key, int scancode, int action, 
 void handle_keyboard_input(GLFWwindow* window, Engine& engine)
 {
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        engine.move_player(-1, 0);
+        engine.move_player(-1, 0, 0);
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        engine.move_player(1, 0);
+        engine.move_player(1, 0, 0);
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        engine.move_player(0, 1);
+        engine.move_player(0, 0, 1);
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        engine.move_player(0, -1);
+        engine.move_player(0, 0, -1);
+
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        engine.move_player(0, -1, 0);
 }
 
 void debug_callback(GLenum source, GLenum type, unsigned int id,
@@ -92,7 +95,7 @@ int main()
     if (!glfwInit())
         log(Level::fatal, "Failed to init GLFW");
 
-    int width = 900, height = 700;
+    int width = 1000, height = 800;
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);

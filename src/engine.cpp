@@ -17,16 +17,19 @@ Engine::Engine(int window_width, int window_height)
     float aspect = float(window_width) / float(window_height);
     m_projection = Matrix4::projection(0.1f, 100.0f, 45 * (M_PI / 180.0f), aspect);
     m_camera_disabled = false;
+
+    m_terrain.load_more_chunks(0, 0);
+    m_player.init(m_terrain);
 }
 
 void Engine::handle_mouse_move(float x, float y)
 {
-    if (!m_camera_disabled) m_player.camera.rotate(x, y);
+    if (!m_camera_disabled) m_player.rotate(x, y);
 }
 
-void Engine::move_player(int offsetx, int offsetz)
+void Engine::move_player(int x, int y, int z)
 {
-    m_player.move(m_terrain, offsetx, offsetz);
+    m_player.move(m_terrain, x, y, z);
 }
 
 void Engine::handle_resize(int width, int height)
@@ -38,11 +41,13 @@ void Engine::handle_resize(int width, int height)
 
 void Engine::render()
 {
+    Vec3 p = m_player.get_position();
+    m_terrain.load_more_chunks(p.x, p.z);
     m_player.fall(m_terrain);
 
     m_shaders.use();
     m_shaders.set_matrix4("projection", m_projection);
-    m_shaders.set_matrix4("view", m_player.camera.look_at());
+    m_shaders.set_matrix4("view", m_player.view_matrix());
     m_spritesheet.bind(m_shaders, 0);
     m_terrain.render();
 }

@@ -3,7 +3,6 @@
 #include <random>
 
 #include "chunk.h"
-#include "utils.h"
 
 inline float fade(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
 
@@ -54,24 +53,24 @@ float perlin_noise(float x, float y)
     return noise * 0.7f + 0.5f;
 }
 
-Chunk::Chunk(Vec3 position) : m_position(position)
+Chunk::Chunk(Vec3 position)
 {
-    std::random_device device;
-    std::mt19937 generator(device());
+    static std::random_device device;
+    static std::mt19937 generator(device());
+    const float frequency = 0.02; // the smaller the frequency, the smoother the noise
 
     // procedurally generate the chunk
-    // the smaller the frequency, the smoother the noise
-    float frequency = 0.02;
-    std::uniform_real_distribution<float> offset_dist(0, 1);
+    m_position = position * Vec3(CHUNK_SIZE, CHUNK_HEIGHT, CHUNK_SIZE);
 
+    std::uniform_real_distribution<float> offset_dist(0, 1);
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
-            float random_x = x + offset_dist(generator);
-            float random_z = z + offset_dist(generator);
-            float noise = perlin_noise(random_x * frequency, random_z * frequency);
-            // draw bottom layers too
+            float random_x = m_position.x + (x + offset_dist(generator)) * frequency;
+            float random_z = m_position.z + (z + offset_dist(generator)) * frequency;
+            float noise = perlin_noise(random_x, random_z);
+            // construct chunk bottom up
             int y = round(noise * CHUNK_HEIGHT);
-            for (int depth = y; depth < CHUNK_HEIGHT; depth++)
+            for (int depth = 0; depth < y; depth++)
                 m_voxels.insert({ Vec3(x, depth, z), true });
         }
     }
@@ -132,8 +131,8 @@ void Chunk::compute_mesh()
 
     for (const auto& [p, _] : m_voxels) {
         for (const auto& [face, vertices] : voxel_faces) {
-            // computing mesh top down
-            Vec3 face_position = Vec3(p.x + face.x, p.y - face.y, p.z + face.z);
+            // computing mesh bottom up
+            Vec3 face_position = Vec3(p.x + face.x, p.y + face.y, p.z + face.z);
             // only add vertices for voxel faces that aren't occluded
             if (!m_voxels.count(face_position)) {
                 unsigned int base_index = m_vertices.size();
@@ -142,7 +141,7 @@ void Chunk::compute_mesh()
                     Vertex modified = v;
                     // apply translation
                     modified.x += m_position.x + p.x;
-                    modified.y += m_position.y - p.y;
+                    modified.y += m_position.y + p.y;
                     modified.z += m_position.z + p.z;
                     // only use grass-side sprite for top layer voxels
                     if (p.y != 0 && v.w == 0) modified.w = 2;
@@ -158,12 +157,14 @@ void Chunk::compute_mesh()
     }
 }
 
+bool Chunk::voxel_present(Vec3 position) { return m_voxels.count(position); }
+
 float Chunk::get_surface_y(float x, float z)
 {
     // find the y value of the top layer voxel
-    for (int y = 0; y < CHUNK_HEIGHT; y++) {
+    for (int y = CHUNK_HEIGHT; y >= 0; y--) {
         if (m_voxels.count(Vec3(x, y, z)))
-            return -y;
+            return y;
     }
-    return 0;
+    return CHUNK_HEIGHT;
 }

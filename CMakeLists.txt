@@ -29,6 +29,7 @@ add_executable(${PROJECT}
     src/main.cpp
     src/chunk.cpp
     src/engine.cpp
+    src/player.cpp
     src/shader.cpp
     src/spritesheet.cpp
 )
