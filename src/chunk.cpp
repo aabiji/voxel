@@ -9,7 +9,7 @@ inline float fade(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
 Vec2 gradient(int x, int y)
 {
     // xxHash
-    int h = x * 3266489917 + y * 668265263;
+    int h = (x % CHUNK_SIZE) * 3266489917 + (y % CHUNK_SIZE) * 668265263;
     h ^= h >> 15;
     h *= 2246822519;
     h ^= h >> 13;

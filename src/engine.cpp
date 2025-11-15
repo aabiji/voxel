@@ -44,6 +44,7 @@ void Engine::render()
     Vec3 p = m_player.get_position();
     m_terrain.load_more_chunks(p.x, p.z);
     m_player.fall(m_terrain);
+    m_player.resolve_collisions(m_terrain);
 
     m_shaders.use();
     m_shaders.set_matrix4("projection", m_projection);

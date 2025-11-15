@@ -13,43 +13,112 @@ void Player::init(Terrain& terrain)
         Vec3(m_position.x, m_position.y + m_size.y, m_position.z);
 }
 
-bool Player::collision(Terrain& terrain, Vec3 target_pos)
+struct AABB
 {
-    for (int x = ceil(target_pos.x); x < ceil(target_pos.x + m_size.x); x++) {
-        for (int y = ceil(target_pos.y + m_size.y + 1); y >= ceil(target_pos.y + 1); y--) {
-            for (int z = ceil(target_pos.z); z < ceil(target_pos.z + m_size.z); z++) {
-                log("({}, {}, {})", x, y, z);
-                if (terrain.voxel_exists(x, y, z)) return true;
+    bool intersect(AABB b)
+    {
+        bool intersect_x = min_x < b.max_x && max_x > b.min_x;
+        bool intersect_y = min_y < b.max_y && max_y > b.min_y;
+        bool intersect_z = min_z < b.max_z && max_z > b.min_z;
+        return intersect_x && intersect_y && intersect_z;
+    }
+
+    // return true if there's a collision and offset
+    // the current bounding box to avoid the collision
+    bool resolve_collision(AABB b)
+    {
+        if (!intersect(b)) return false;
+
+        float overlap_x = std::min(max_x, b.max_x) - std::max(min_x, b.min_x);
+        float overlap_y = std::min(max_y, b.max_y) - std::max(min_y, b.min_y);
+        float overlap_z = std::min(max_z, b.max_z) - std::max(min_z, b.min_z);
+
+        // find the axis with the minimum overlap
+        if (overlap_x < overlap_y && overlap_x < overlap_z) {
+            // resolve collision
+            if (min_x < b.min_x) {
+                // on the left of b
+                min_x -= overlap_x;
+                max_x -= overlap_x;
+            } else {
+                // on the right of b
+                min_x += overlap_x;
+                max_x += overlap_x;
+            }
+        } else if (overlap_y < overlap_x && overlap_y < overlap_z) {
+            if (min_y < b.min_y) {
+                min_y -= overlap_y;
+                max_y -= overlap_y;
+            } else {
+                min_y += overlap_y;
+                max_y += overlap_y;
+            }
+        } else {
+            if (min_z < b.min_z) {
+                min_z -= overlap_z;
+                max_z -= overlap_z;
+            } else {
+                min_z += overlap_z;
+                max_z += overlap_z;
+            }
+        }
+
+        return true;
+    }
+
+    float min_x, min_y, min_z;
+    float max_x, max_y, max_z;
+};
+
+void Player::resolve_collisions(Terrain& terrain)
+{
+    AABB player = {
+        .min_x = m_position.x,
+        .min_y = m_position.y + 1,
+        .min_z = m_position.z,
+        .max_x = m_position.x + m_size.x,
+        .max_y = m_position.y + m_size.y + 1,
+        .max_z = m_position.z + m_size.z,
+    };
+
+    for (int x = player.min_x; x <= player.max_x; x++) {
+        for (int y = player.min_y; y <= player.max_y; y++) {
+            for (int z = player.min_z; z <= player.max_z; z++) {
+                AABB voxel = {
+                    .min_x = float(x), .min_y = float(y),
+                    .min_z = float(z), .max_x = float(x + 1),
+                    .max_y = float(y + 1), .max_z = float(z + 1)
+                };
+
+                bool voxel_exists = terrain.voxel_exists(voxel.min_x, voxel.min_y, voxel.min_z);
+                if (voxel_exists && player.resolve_collision(voxel)) {
+                    //log("COLLISION!: ({}, {}, {}) with ({}, {}, {})", player.min_x, player.min_y, player.min_z, x, y, z);
+                    //log("NEW POS!: ({}, {}, {})", player.min_x, player.min_y, player.min_z);
+                }
             }
         }
     }
-    return false;
+
+    m_position.x = player.min_x;
+    //m_position.y = player.min_y;
+    m_position.z = player.min_z;
 }
 
 void Player::move(Terrain& terrain, int offsetx, int offsety, int offsetz)
 {
-    Vec3 target_pos = m_position;
-    Vec3 target_vel = m_velocity;
     Vec3 front = Vec3(m_camera.front.x, 0, m_camera.front.z).normalize();
     Vec3 right = Vec3::cross(m_camera.front, m_camera.up).normalize();
 
     if (offsetz == 1) // forward
-        target_pos += front * m_velocity.x;
+        m_position += front * m_velocity.x;
     if (offsetz == -1) // backward
-        target_pos -= front * m_velocity.x;
+        m_position -= front * m_velocity.x;
     if (offsetx == 1) // right
-        target_pos += right * m_velocity.x;
+        m_position += right * m_velocity.x;
     if (offsetx == -1) // left
-        target_pos -= right * m_velocity.x;
+        m_position -= right * m_velocity.x;
     if (offsety == -1 && m_on_ground) // jump
-        target_vel.y += 0.25f;
-
-    // don't move if the player will collide or step off chunk
-    if (!collision(terrain, target_pos)) {
-        m_position = target_pos;
-        m_velocity = target_vel;
-        m_camera.position = Vec3(target_pos.x, target_pos.y + m_size.y, target_pos.z);
-    }
+        m_velocity.y += 0.25f;
 }
 
 void Player::fall(Terrain& terrain)
@@ -67,6 +136,5 @@ void Player::fall(Terrain& terrain)
         m_position.y = surface_y;
     }
 
-    m_camera.position =
-        Vec3(m_position.x, m_position.y + m_size.y, m_position.z);
+    m_camera.position = Vec3(m_position.x, m_position.y + m_size.y, m_position.z);
 }
