@@ -61,6 +61,10 @@ struct Vec3
         return Vec3(x * v, y * v, z * v);
     }
 
+    float& operator[](int index)
+    {
+        return index == 0 ? x : index == 1 ? y : z;
+    }
 
     float length() const
     {
@@ -122,31 +126,6 @@ struct Matrix4
         return result;
     }
 
-    Matrix4 operator*=(const Matrix4& m)
-    {
-        *this = *this * m;
-        return *this;
-    }
-
-    static Matrix4 translate(Vec3 offset)
-    {
-        Matrix4 m;
-        m.values[12] = offset.x;
-        m.values[13] = offset.y;
-        m.values[14] = offset.z;
-        return m;
-    }
-
-    static Matrix4 scale(Vec3 v)
-    {
-        Matrix4 m;
-        m.values[0]  = v.x;
-        m.values[3]  = v.y;
-        m.values[10] = v.z;
-        m.values[15] = 1.0;
-        return m;
-    }
-
     // Compute the projection matrix:
     // near is the distance to the near plane
     // far is the distance to the far plane
@@ -175,14 +154,6 @@ struct Quaternion
     Quaternion(float d, float a, float b, float c)
         : x(a), y(b), z(c), w(d) {}
 
-    Quaternion(Vec3 axis, float radians)
-    {
-        w = cos(radians / 2.0);
-        x = axis.x * sin(radians / 2.0);
-        y = axis.y * sin(radians / 2.0);
-        z = axis.z * sin(radians / 2.0);
-    }
-
     Quaternion operator*(const Quaternion& a)
     {
         return Quaternion(
@@ -204,31 +175,6 @@ struct Quaternion
         Vec3 qv(x, y, z);
         Vec3 t = Vec3::cross(qv, v) * 2.0f;
         return v + t * w + Vec3::cross(qv, t);
-    }
-
-    Matrix4 rotation()
-    {
-        Matrix4 m;
-        m.values[0]  = 1 - 2 * (y * y + z * z);
-        m.values[1]  = 2 * (x * y - w * z);
-        m.values[2]  = 2 * (x * z + w * y);
-        m.values[3]  = 0;
-
-        m.values[4]  = 2 * (x * y + w * z);
-        m.values[5]  = 1 - 2 * (x * x + z * z);
-        m.values[6]  = 2 * (y * z - w * x);
-        m.values[7]  = 0;
-
-        m.values[8]  = 2 * (x * z - w * y);
-        m.values[9]  = 2 * (y * z + w * x);
-        m.values[10] = 1 - 2 * (x * x + y * y);
-        m.values[11] = 0;
-
-        m.values[12] = 0;
-        m.values[13] = 0;
-        m.values[14] = 0;
-        m.values[15] = 1;
-        return m;
     }
 
     float x, y, z, w;

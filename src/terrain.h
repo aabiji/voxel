@@ -13,11 +13,7 @@ struct VoxelLocation
 class Terrain
 {
 public:
-    Terrain()
-    {
-        auto chunk = std::make_shared<Chunk>(Vec3(0, 0, 0));
-        m_chunks.insert({ Vec3(0, 0, 0), chunk });
-    }
+    Terrain() {}
 
     float surface_y(float x, float z)
     {
