@@ -18,8 +18,8 @@ void Player::init(Terrain& terrain)
 
 void Player::move(Terrain& terrain, Direction direction)
 {
-    Vec3 front = m_camera.front.normalize();
-    Vec3 right = Vec3::cross(m_camera.front, m_camera.up).normalize();
+    Vec3 front = m_camera.front.norm();
+    Vec3 right = Vec3::cross(m_camera.front, m_camera.up).norm();
     front.y = right.y = 0; // only move laterally or front to back
 
     // move in the camera's direction
@@ -51,6 +51,33 @@ float Player::apply_physics(float value, float min, float max, bool is_accel)
     return value;
 }
 
+struct BoundingBox
+{
+    BoundingBox(Matrix4 m)
+    {
+        Vec3 scaled1 = Vec3(m.values[0], m.values[1], m.values[2]);  // right (column 0)
+        Vec3 scaled2 = Vec3(m.values[4], m.values[5], m.values[6]);  // up (column 1)
+        Vec3 scaled3 = Vec3(m.values[8], m.values[9], m.values[10]); // forward (column 2)
+
+        half_extents = Vec3(scaled1.length(), scaled2.length(), scaled3.length());
+        center = Vec3(m.values[12], m.values[13], m.values[14]).norm(); // forward (column 2)
+        axis1 = scaled1.norm();
+        axis2 = scaled2.norm();
+        axis3 = scaled3.norm();
+    }
+private:
+    Vec3 center, half_extents;
+    Vec3 axis1, axis2, axis3;
+};
+
+bool collision(Matrix4 a, Matrix4 b)
+{
+    BoundingBox box_a = BoundingBox(a);
+    BoundingBox box_b = BoundingBox(b);
+    // TODO: implement the algorithm!
+    return false;
+}
+
 void Player::update(Terrain& terrain)
 {
     m_vel += m_accel;
@@ -63,6 +90,16 @@ void Player::update(Terrain& terrain)
     m_vel.x = apply_physics(m_vel.x, 0.1, 0.3, false);
     m_vel.y = apply_physics(m_vel.y, 0.1, 0.3, false);
     m_vel.z = apply_physics(m_vel.z, 0.1, 0.3, false);
+
+    Matrix4 player;
+    player *= Matrix4::scale(m_size);
+    player *= Quaternion(Vec3(1, 0, 0), 0).rotation();
+    player *= Matrix4::translate(m_position);
+
+    Matrix4 voxel;
+    voxel *= Matrix4::translate(m_position);
+
+    collision(player, voxel);
 
     //log("acceleration ({}, {}, {})", m_accel.x, m_accel.y, m_accel.z);
     //log("velocity ({}, {}, {})", m_vel.x, m_vel.y, m_vel.z);

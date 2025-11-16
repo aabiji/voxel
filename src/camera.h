@@ -40,15 +40,15 @@ public:
         Quaternion pitch(cos(m_pitch * 0.5),  sin(m_pitch * 0.5), 0.0, 0.0);
 
         // rotate vectors
-        m_rotation = (yaw * pitch).normalize();
+        m_rotation = (yaw * pitch).norm();
         front = m_rotation.rotate(Vec3(0, 0, -1));
         up = m_rotation.rotate(Vec3(0, 1, 0));
     }
 
     Matrix4 look_at()
     {
-        Vec3 f = front.normalize();
-        Vec3 right = Vec3::cross(f, up).normalize();
+        Vec3 f = front.norm();
+        Vec3 right = Vec3::cross(f, up).norm();
         Vec3 up = Vec3::cross(right, f);
 
         Matrix4 m;
