@@ -20,10 +20,9 @@ private:
     void update_position();
     float apply_physics(float value, float min, float max, bool is_accel);
 
-    Vec3 m_vel;
-    Vec3 m_accel;
-    float m_friction;
-    float m_speed;
+    Vec3 m_vel, m_accel;
+    float m_friction, m_speed;
+    float m_max_jump_height;
 
     Vec3 m_size;
     Vec3 m_position;

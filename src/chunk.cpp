@@ -1,6 +1,4 @@
-#include <assert.h>
 #include <glad/glad.h>
-#include <random>
 
 #include "chunk.h"
 
@@ -8,18 +6,21 @@ inline float fade(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
 
 Vec2 gradient(int x, int y)
 {
+    // tileable and continuous perlin noise
+    constexpr int noise_period = 512;
+    int px = (x % noise_period + noise_period) % noise_period;
+    int py = (y % noise_period + noise_period) % noise_period;
+
     // xxHash
-    int h = (x % CHUNK_SIZE) * 3266489917 + (y % CHUNK_SIZE) * 668265263;
+    int h = px * 3266489917 + py * 668265263;
     h ^= h >> 15;
     h *= 2246822519;
     h ^= h >> 13;
     h *= 3266489917;
     h ^= h >> 16;
     // random gradient vector
-    Vec2 directions[] = {
-        Vec2{1, 0}, Vec2{-1, 0}, Vec2{0, 1}, Vec2{0, -1},
-        Vec2{1, 1}, Vec2{-1, 1}, Vec2{1, -1}, Vec2{-1, -1}
-    };
+    Vec2 directions[] = { Vec2 { 1, 0 }, Vec2 { -1, 0 }, Vec2 { 0, 1 }, Vec2 { 0, -1 },
+        Vec2 { 1, 1 }, Vec2 { -1, 1 }, Vec2 { 1, -1 }, Vec2 { -1, -1 } };
     return directions[h & 7];
 }
 
@@ -39,9 +40,9 @@ float perlin_noise(float x, float y)
     Vec2 gbr = gradient(X + 1, Y + 1);
 
     // compute dot products to get the gradient values for each corner
-    float vtl = gtl.x * dx       + gtl.y * dy;
+    float vtl = gtl.x * dx + gtl.y * dy;
     float vtr = gtr.x * (dx - 1) + gtr.y * dy;
-    float vbl = gbl.x * dx       + gbl.y * (dy - 1);
+    float vbl = gbl.x * dx + gbl.y * (dy - 1);
     float vbr = gbr.x * (dx - 1) + gbr.y * (dy - 1);
 
     // interpolate those values
@@ -55,21 +56,18 @@ float perlin_noise(float x, float y)
 
 Chunk::Chunk(Vec3 position)
 {
-    static std::random_device device;
-    static std::mt19937 generator(device());
-    const float frequency = 0.02; // the smaller the frequency, the smoother the noise
-
     // procedurally generate the chunk
+    const float frequency = 0.03; // the smaller the frequency, the smoother the noise
     m_position = position * Vec3(CHUNK_SIZE, CHUNK_HEIGHT, CHUNK_SIZE);
 
-    std::uniform_real_distribution<float> offset_dist(0, 1);
     for (int x = 0; x < CHUNK_SIZE; x++) {
         for (int z = 0; z < CHUNK_SIZE; z++) {
-            float random_x = m_position.x + (x + offset_dist(generator)) * frequency;
-            float random_z = m_position.z + (z + offset_dist(generator)) * frequency;
+            float random_x = (m_position.x + x) * frequency;
+            float random_z = (m_position.z + z) * frequency;
             float noise = perlin_noise(random_x, random_z);
+            noise = fmin(fmax(noise, 0.1), 1.0);
             // construct chunk bottom up
-            int y = round(noise * CHUNK_HEIGHT);
+            int y = floor(noise * CHUNK_HEIGHT);
             for (int depth = 0; depth < y; depth++)
                 m_voxels.insert({ Vec3(x, depth, z), true });
         }
@@ -99,22 +97,18 @@ void Chunk::init_buffers()
 
     glGenBuffers(1, &m_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        m_vertices.size() * sizeof(Vertex),
-        m_vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(Vertex), m_vertices.data(),
+        GL_STATIC_DRAW);
 
     glGenBuffers(1, &m_ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-    glBufferData(
-        GL_ELEMENT_ARRAY_BUFFER,
-        m_indices.size() * sizeof(unsigned int),
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(unsigned int),
         m_indices.data(), GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
     glEnableVertexAttribArray(0); // position
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-        (void*)offsetof(Vertex, u));
+    glVertexAttribPointer(
+        1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, u));
     glEnableVertexAttribArray(1); // texture coordinate
 
     m_num_indices = m_indices.size();
@@ -144,7 +138,8 @@ void Chunk::compute_mesh()
                     modified.y += m_position.y + p.y;
                     modified.z += m_position.z + p.z;
                     // only use grass-side sprite for top layer voxels
-                    if (p.y != 0 && v.w == 0) modified.w = 2;
+                    if (p.y != 0 && v.w == 0)
+                        modified.w = 2;
                     m_vertices.push_back(modified);
                 }
 

@@ -9,9 +9,10 @@ void Player::init(Terrain* terrain)
     m_size = Vec3(1, 2, 1);
 
     m_vel = Vec3(0.0, 0, 0);
-    m_accel = Vec3(0, -0.25, 0);
+    m_accel = Vec3(0, -0.15, 0);
     m_friction = 0.2;
-    m_speed = 0.2;
+    m_speed = 0.15;
+    m_max_jump_height = 1.5;
 
     m_camera.position = Vec3(m_position.x, m_position.y + m_size.y, m_position.z);
     m_terrain = terrain;
@@ -19,9 +20,16 @@ void Player::init(Terrain* terrain)
 
 void Player::move(Direction direction)
 {
-    Vec3 front = m_camera.front.norm();
-    Vec3 right = Vec3::cross(m_camera.front, m_camera.up).norm();
-    front.y = right.y = 0; // only move laterally or front to back
+    Vec3 front = m_camera.front;
+    front.y = 0;
+    front = front.norm();
+
+    Vec3 right = Vec3::cross(m_camera.front, m_camera.up);
+    right.y = 0;
+    right = right.norm();
+
+    float surface_y = m_terrain->surface_y(m_position.x, m_position.z);
+    bool on_ground = m_position.y <= surface_y + 1.001;
 
     // move in the camera's direction
     if (direction == Direction::right)
@@ -32,6 +40,8 @@ void Player::move(Direction direction)
         m_accel += front * m_speed;
     if (direction == Direction::back)
         m_accel -= front * m_speed;
+    if (direction == Direction::up && on_ground)
+        m_vel.y = m_max_jump_height;
 }
 
 // The value is acceleration or velocity
@@ -64,8 +74,7 @@ bool Player::check_collision()
     int min_x = std::floor(m_position.x);
     int max_x = std::floor(m_position.x + m_size.x - epsilon);
 
-    // using y + 1 to ignore collisions with the ground (those are handled
-    // separately)
+    // using y + 1 to ignore collisions with the ground (those are handled separately)
     int min_y = std::floor(m_position.y + 1);
     int max_y = std::floor(m_position.y + m_size.y + 1 - epsilon);
 
@@ -117,11 +126,11 @@ void Player::update()
     m_vel += m_accel;
     update_position();
 
-    m_accel.x = apply_physics(m_accel.x, 0.1, 0.25, true);
-    m_accel.z = apply_physics(m_accel.z, 0.1, 0.25, true);
+    m_accel.x = apply_physics(m_accel.x, 0.1, 0.15, true);
+    m_accel.z = apply_physics(m_accel.z, 0.1, 0.15, true);
 
-    m_vel.x = apply_physics(m_vel.x, 0.1, 0.3, false);
-    m_vel.z = apply_physics(m_vel.z, 0.1, 0.3, false);
+    m_vel.x = apply_physics(m_vel.x, 0.1, 0.15, false);
+    m_vel.z = apply_physics(m_vel.z, 0.1, 0.15, false);
 
     m_camera.position = Vec3(m_position.x, m_position.y + m_size.y, m_position.z);
 }
