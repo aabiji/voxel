@@ -1,6 +1,5 @@
 #pragma once
 
-#include "chunk.h"
 #include "player.h"
 #include "spritesheet.h"
 
@@ -10,8 +9,7 @@ public:
     Engine(int window_width, int window_height);
 
     void render();
-    void move_player(int x, int y, int z);
-    void jump_player();
+    void move_player(Direction direction);
 
     void handle_resize(int width, int height);
     void handle_mouse_move(float x, float y);

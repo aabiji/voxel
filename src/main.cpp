@@ -39,19 +39,19 @@ void keybinding_callback(GLFWwindow* window, int key, int scancode, int action, 
 void handle_keyboard_input(GLFWwindow* window, Engine& engine)
 {
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        engine.move_player(-1, 0, 0);
+        engine.move_player(Direction::left);
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        engine.move_player(1, 0, 0);
+        engine.move_player(Direction::right);
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        engine.move_player(0, 0, 1);
+        engine.move_player(Direction::front);
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        engine.move_player(0, 0, -1);
+        engine.move_player(Direction::back);
 
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        engine.move_player(0, -1, 0);
+        engine.move_player(Direction::up);
 }
 
 void debug_callback(GLenum source, GLenum type, unsigned int id,

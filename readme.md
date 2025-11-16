@@ -7,6 +7,7 @@ roadmap:
 - Player interaction
     [ ] Place/remove blocks
     [ ] Place different block types (also things like flowers)
+    [ ] Highlight the current block the player's aiming at
 - Phyiscs
     [ ] Player movement, jumping (with gravity(
     [ ] Collision detection with voxels

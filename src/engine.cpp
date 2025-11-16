@@ -27,9 +27,9 @@ void Engine::handle_mouse_move(float x, float y)
     if (!m_camera_disabled) m_player.rotate(x, y);
 }
 
-void Engine::move_player(int x, int y, int z)
+void Engine::move_player(Direction direction)
 {
-    m_player.move(m_terrain, x, y, z);
+    m_player.move(m_terrain, direction);
 }
 
 void Engine::handle_resize(int width, int height)
@@ -43,8 +43,7 @@ void Engine::render()
 {
     Vec3 p = m_player.get_position();
     m_terrain.load_more_chunks(p.x, p.z);
-    m_player.fall(m_terrain);
-    m_player.resolve_collisions(m_terrain);
+    m_player.update(m_terrain);
 
     m_shaders.use();
     m_shaders.set_matrix4("projection", m_projection);
