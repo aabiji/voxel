@@ -3,15 +3,13 @@
 #include "math.h"
 #include "utils.h"
 
-class Camera
-{
+class Camera {
 public:
     Camera()
     {
         position = Vec3(0, 0, 0);
         up = Vec3(0, 1, 0);
-        front = Vec3(0, 0, -1),
-        m_sensitivity = 0.003;
+        front = Vec3(0, 0, -1), m_sensitivity = 0.003;
         m_yaw = m_pitch = 0;
         m_first_move = true;
     }
@@ -37,7 +35,7 @@ public:
         float max_pitch = M_PI / 2.0;
         m_pitch = std::max(-max_pitch, std::min(max_pitch, m_pitch + pitch_delta));
         m_prev_y = mousey;
-        Quaternion pitch(cos(m_pitch * 0.5),  sin(m_pitch * 0.5), 0.0, 0.0);
+        Quaternion pitch(cos(m_pitch * 0.5), sin(m_pitch * 0.5), 0.0, 0.0);
 
         // rotate vectors
         m_rotation = (yaw * pitch).norm();
@@ -52,24 +50,24 @@ public:
         Vec3 up = Vec3::cross(right, f);
 
         Matrix4 m;
-        m.values[0]  = right.x;
-        m.values[1]  = up.x;
-        m.values[2]  = -f.x;
-        m.values[3]  = 0.0f;
+        m.values[0] = right.x;
+        m.values[1] = up.x;
+        m.values[2] = -f.x;
+        m.values[3] = 0.0f;
 
-        m.values[4]  = right.y;
-        m.values[5]  = up.y;
-        m.values[6]  = -f.y;
-        m.values[7]  = 0.0f;
+        m.values[4] = right.y;
+        m.values[5] = up.y;
+        m.values[6] = -f.y;
+        m.values[7] = 0.0f;
 
-        m.values[8]  = right.z;
-        m.values[9]  = up.z;
+        m.values[8] = right.z;
+        m.values[9] = up.z;
         m.values[10] = -f.z;
         m.values[11] = 0.0f;
 
         m.values[12] = -Vec3::dot(right, position);
         m.values[13] = -Vec3::dot(up, position);
-        m.values[14] =  Vec3::dot(f, position);
+        m.values[14] = Vec3::dot(f, position);
         m.values[15] = 1.0f;
         return m;
     }

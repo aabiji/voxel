@@ -54,39 +54,69 @@ void handle_keyboard_input(GLFWwindow* window, Engine& engine)
         engine.move_player(Direction::up);
 }
 
-void debug_callback(GLenum source, GLenum type, unsigned int id,
-                    GLenum severity, GLsizei length, const char *message,
-                    const void *userParam)
+void debug_callback(GLenum source, GLenum type, unsigned int id, GLenum severity,
+    GLsizei length, const char* message, const void* userParam)
 {
     // ignore non-significant error/warning codes
-    if (id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
+    if (id == 131169 || id == 131185 || id == 131218 || id == 131204)
+        return;
 
     std::string source_info = "";
     switch (source) {
-        case GL_DEBUG_SOURCE_API:             source_info += "Source: API"; break;
-        case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   source_info += "Source: Window System"; break;
-        case GL_DEBUG_SOURCE_SHADER_COMPILER: source_info += "Source: Shader Compiler"; break;
-        case GL_DEBUG_SOURCE_THIRD_PARTY:     source_info += "Source: Third Party"; break;
-        case GL_DEBUG_SOURCE_APPLICATION:     source_info += "Source: Application"; break;
-        case GL_DEBUG_SOURCE_OTHER:           source_info += "Source: Other"; break;
+    case GL_DEBUG_SOURCE_API:
+        source_info += "Source: API";
+        break;
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+        source_info += "Source: Window System";
+        break;
+    case GL_DEBUG_SOURCE_SHADER_COMPILER:
+        source_info += "Source: Shader Compiler";
+        break;
+    case GL_DEBUG_SOURCE_THIRD_PARTY:
+        source_info += "Source: Third Party";
+        break;
+    case GL_DEBUG_SOURCE_APPLICATION:
+        source_info += "Source: Application";
+        break;
+    case GL_DEBUG_SOURCE_OTHER:
+        source_info += "Source: Other";
+        break;
     }
 
     std::string type_info = "";
     switch (type) {
-        case GL_DEBUG_TYPE_ERROR:               type_info += "Type: Error"; break;
-        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: type_info += "Type: Deprecated Behaviour"; break;
-        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  type_info += "Type: Undefined Behaviour"; break;
-        case GL_DEBUG_TYPE_PORTABILITY:         type_info += "Type: Portability"; break;
-        case GL_DEBUG_TYPE_PERFORMANCE:         type_info += "Type: Performance"; break;
-        case GL_DEBUG_TYPE_MARKER:              type_info += "Type: Marker"; break;
-        case GL_DEBUG_TYPE_PUSH_GROUP:          type_info += "Type: Push Group"; break;
-        case GL_DEBUG_TYPE_POP_GROUP:           type_info += "Type: Pop Group"; break;
-        case GL_DEBUG_TYPE_OTHER:               type_info += "Type: Other"; break;
+    case GL_DEBUG_TYPE_ERROR:
+        type_info += "Type: Error";
+        break;
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        type_info += "Type: Deprecated Behaviour";
+        break;
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        type_info += "Type: Undefined Behaviour";
+        break;
+    case GL_DEBUG_TYPE_PORTABILITY:
+        type_info += "Type: Portability";
+        break;
+    case GL_DEBUG_TYPE_PERFORMANCE:
+        type_info += "Type: Performance";
+        break;
+    case GL_DEBUG_TYPE_MARKER:
+        type_info += "Type: Marker";
+        break;
+    case GL_DEBUG_TYPE_PUSH_GROUP:
+        type_info += "Type: Push Group";
+        break;
+    case GL_DEBUG_TYPE_POP_GROUP:
+        type_info += "Type: Pop Group";
+        break;
+    case GL_DEBUG_TYPE_OTHER:
+        type_info += "Type: Other";
+        break;
     }
 
-    Level level = severity == GL_DEBUG_SEVERITY_HIGH
-        ? Level::error
-        : severity == GL_DEBUG_SEVERITY_MEDIUM ? Level::warning : Level::info;
+    Level level = severity == GL_DEBUG_SEVERITY_HIGH ? Level::error
+        : severity == GL_DEBUG_SEVERITY_MEDIUM       ? Level::warning
+                                                     : Level::info;
     log(level, "{} {} {}", source_info, type_info, message);
 }
 

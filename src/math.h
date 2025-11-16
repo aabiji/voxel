@@ -3,42 +3,25 @@
 #include <functional>
 #include <math.h>
 
-struct Vec2
-{
-    Vec2() : x(0), y(0) {}
-    Vec2(float a, float b) : x(a), y(b) {}
+struct Vec2 {
+    Vec2() : x(0), y(0) { }
+    Vec2(float a, float b) : x(a), y(b) { }
     float x, y;
 };
 
-struct Vec3
-{
-    Vec3() : x(0), y(0), z(0) {}
-    Vec3(float a, float b, float c) : x(a), y(b), z(c) {}
+struct Vec3 {
+    Vec3() : x(0), y(0), z(0) { }
+    Vec3(float a, float b, float c) : x(a), y(b), z(c) { }
 
-    bool operator==(const Vec3& v) const
-    {
-        return x == v.x && y == v.y && z == v.z;
-    }
+    bool operator==(const Vec3& v) const { return x == v.x && y == v.y && z == v.z; }
 
-    Vec3 operator-() const
-    {
-        return Vec3(-x, -y, -z);
-    }
+    Vec3 operator-() const { return Vec3(-x, -y, -z); }
 
-    Vec3 operator+(const Vec3& v) const
-    {
-        return Vec3(x + v.x, y + v.y, z + v.z);
-    }
+    Vec3 operator+(const Vec3& v) const { return Vec3(x + v.x, y + v.y, z + v.z); }
 
-    Vec3 operator-(const Vec3& v) const
-    {
-        return Vec3(x - v.x, y - v.y, z - v.z);
-    }
+    Vec3 operator-(const Vec3& v) const { return Vec3(x - v.x, y - v.y, z - v.z); }
 
-    Vec3 operator*(const Vec3& v) const
-    {
-        return Vec3(x * v.x, y * v.y, z * v.z);
-    }
+    Vec3 operator*(const Vec3& v) const { return Vec3(x * v.x, y * v.y, z * v.z); }
 
     Vec3& operator+=(const Vec3& a)
     {
@@ -56,20 +39,11 @@ struct Vec3
         return *this;
     }
 
-    Vec3 operator*(const float v) const
-    {
-        return Vec3(x * v, y * v, z * v);
-    }
+    Vec3 operator*(const float v) const { return Vec3(x * v, y * v, z * v); }
 
-    float& operator[](int index)
-    {
-        return index == 0 ? x : index == 1 ? y : z;
-    }
+    float& operator[](int index) { return index == 0 ? x : index == 1 ? y : z; }
 
-    float length() const
-    {
-        return std::sqrt(x * x + y * y + z * z);
-    }
+    float length() const { return std::sqrt(x * x + y * y + z * z); }
 
     Vec3 norm() const
     {
@@ -79,22 +53,15 @@ struct Vec3
 
     static Vec3 cross(Vec3 a, Vec3 b)
     {
-        return Vec3(
-            a.y * b.z - a.z * b.y,
-            a.z * b.x - a.x * b.z,
-            a.x * b.y - a.y * b.x);
+        return Vec3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
     }
 
-    static float dot(Vec3 a, Vec3 b)
-    {
-        return a.x * b.x + a.y * b.y + a.z * b.z;
-    }
+    static float dot(Vec3 a, Vec3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
 
     float x, y, z;
 };
 
-struct Vec3Hasher
-{
+struct Vec3Hasher {
     std::size_t operator()(const Vec3& v) const
     {
         using fh = std::hash<float>;
@@ -102,11 +69,11 @@ struct Vec3Hasher
     }
 };
 
-struct Matrix4
-{
+struct Matrix4 {
     Matrix4() // default to an identity matrix
     {
-        for (int i = 0; i < 16; i++) values[i] = 0.0f;
+        for (int i = 0; i < 16; i++)
+            values[i] = 0.0f;
         values[0] = values[5] = values[10] = values[15] = 1.0f;
     }
 
@@ -116,11 +83,10 @@ struct Matrix4
         Matrix4 result;
         for (int col = 0; col < 4; ++col) {
             for (int row = 0; row < 4; ++row) {
-                result.values[col * 4 + row] =
-                    values[0 * 4 + row] * m.values[col * 4 + 0] +
-                    values[1 * 4 + row] * m.values[col * 4 + 1] +
-                    values[2 * 4 + row] * m.values[col * 4 + 2] +
-                    values[3 * 4 + row] * m.values[col * 4 + 3];
+                result.values[col * 4 + row] = values[0 * 4 + row] * m.values[col * 4 + 0]
+                    + values[1 * 4 + row] * m.values[col * 4 + 1]
+                    + values[2 * 4 + row] * m.values[col * 4 + 2]
+                    + values[3 * 4 + row] * m.values[col * 4 + 3];
             }
         }
         return result;
@@ -135,8 +101,8 @@ struct Matrix4
     {
         float tan_half = tan(fov / 2.0f);
         Matrix4 m;
-        m.values[0]  = 1.0f / (aspect * tan_half);
-        m.values[5]  = 1.0f / tan_half;
+        m.values[0] = 1.0f / (aspect * tan_half);
+        m.values[5] = 1.0f / tan_half;
         m.values[10] = -(far + near) / (far - near);
         m.values[11] = -1.0f;
         m.values[14] = -(2.0f * far * near) / (far - near);
@@ -147,21 +113,16 @@ struct Matrix4
     float values[16];
 };
 
-struct Quaternion
-{
-    Quaternion() : x(0), y(0), z(0), w(0) {}
+struct Quaternion {
+    Quaternion() : x(0), y(0), z(0), w(0) { }
 
-    Quaternion(float d, float a, float b, float c)
-        : x(a), y(b), z(c), w(d) {}
+    Quaternion(float d, float a, float b, float c) : x(a), y(b), z(c), w(d) { }
 
     Quaternion operator*(const Quaternion& a)
     {
-        return Quaternion(
-            w * a.w - x * a.x - y * a.y - z * a.z,
-            w * a.x + x * a.w + y * a.z - z * a.y,
-            w * a.y - x * a.z + y * a.w + z * a.x,
-            w * a.z + x * a.y - y * a.x + z * a.w
-        );
+        return Quaternion(w * a.w - x * a.x - y * a.y - z * a.z,
+            w * a.x + x * a.w + y * a.z - z * a.y, w * a.y - x * a.z + y * a.w + z * a.x,
+            w * a.z + x * a.y - y * a.x + z * a.w);
     }
 
     Quaternion norm() const
@@ -179,4 +140,3 @@ struct Quaternion
 
     float x, y, z, w;
 };
-

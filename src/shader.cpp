@@ -1,6 +1,6 @@
 #include <fstream>
-#include <vector>
 #include <string>
+#include <vector>
 
 #include <glad/glad.h>
 
@@ -11,10 +11,12 @@ ShaderManager::~ShaderManager() { glDeleteProgram(m_program); }
 Result ShaderManager::load(std::string vertex_path, std::string fragment_path)
 {
     auto result = add_shader(GL_VERTEX_SHADER, vertex_path);
-    if (result.is_err()) return result;
+    if (result.is_err())
+        return result;
 
     result = add_shader(GL_FRAGMENT_SHADER, fragment_path);
-    if (result.is_err()) return result;
+    if (result.is_err())
+        return result;
 
     return assemble();
 }
@@ -47,8 +49,7 @@ ResultOr<std::string> read_file(std::string& path)
         return Result("Failed to open {}", path);
 
     std::string content(
-        (std::istreambuf_iterator<char>(file)),
-        std::istreambuf_iterator<char>());
+        (std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
     file.close();
     return content;

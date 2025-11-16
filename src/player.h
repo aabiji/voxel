@@ -5,8 +5,7 @@
 
 enum class Direction { front, back, right, left, up };
 
-class Player
-{
+class Player {
 public:
     void init(Terrain* terrain);
     void move(Direction direction);
@@ -15,6 +14,7 @@ public:
     Vec3 get_position() { return m_position; }
     void rotate(float x, float y) { m_camera.rotate(x, y); }
     Matrix4 view_matrix() { return m_camera.look_at(); }
+
 private:
     bool check_collision();
     void update_position();

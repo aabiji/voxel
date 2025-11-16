@@ -5,8 +5,7 @@
 #include "math.h"
 #include "utils.h"
 
-class ShaderManager
-{
+class ShaderManager {
 public:
     ~ShaderManager();
 
@@ -15,6 +14,7 @@ public:
     void set_int(std::string name, const int value);
     void set_matrix4(std::string name, const Matrix4& value);
     Result load(std::string vertex_path, std::string fragment_path);
+
 private:
     Result add_shader(int type, std::string path);
     Result assemble();

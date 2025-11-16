@@ -7,8 +7,7 @@
 const int CHUNK_SIZE = 20;
 const int CHUNK_HEIGHT = 20;
 
-class Chunk
-{
+class Chunk {
 public:
     Chunk(Vec3 position);
     ~Chunk();
@@ -22,6 +21,7 @@ public:
     void render();
     bool voxel_present(Vec3 position);
     float get_surface_y(float x, float z);
+
 private:
     void compute_mesh();
     void init_buffers();

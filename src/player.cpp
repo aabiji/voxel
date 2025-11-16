@@ -13,8 +13,7 @@ void Player::init(Terrain* terrain)
     m_friction = 0.2;
     m_speed = 0.2;
 
-    m_camera.position =
-        Vec3(m_position.x, m_position.y + m_size.y, m_position.z);
+    m_camera.position = Vec3(m_position.x, m_position.y + m_size.y, m_position.z);
     m_terrain = terrain;
 }
 
@@ -25,10 +24,14 @@ void Player::move(Direction direction)
     front.y = right.y = 0; // only move laterally or front to back
 
     // move in the camera's direction
-    if (direction == Direction::right) m_accel += right * m_speed;
-    if (direction == Direction::left) m_accel -= right * m_speed;
-    if (direction == Direction::front) m_accel += front * m_speed;
-    if (direction == Direction::back) m_accel -= front * m_speed;
+    if (direction == Direction::right)
+        m_accel += right * m_speed;
+    if (direction == Direction::left)
+        m_accel -= right * m_speed;
+    if (direction == Direction::front)
+        m_accel += front * m_speed;
+    if (direction == Direction::back)
+        m_accel -= front * m_speed;
 }
 
 // The value is acceleration or velocity
@@ -61,7 +64,8 @@ bool Player::check_collision()
     int min_x = std::floor(m_position.x);
     int max_x = std::floor(m_position.x + m_size.x - epsilon);
 
-    // using y + 1 to ignore collisions with the ground (those are handled separately)
+    // using y + 1 to ignore collisions with the ground (those are handled
+    // separately)
     int min_y = std::floor(m_position.y + 1);
     int max_y = std::floor(m_position.y + m_size.y + 1 - epsilon);
 
@@ -90,15 +94,18 @@ void Player::update_position()
             // colliding on top? push down
             // colliding at the front? push back
             if (m_vel[axis] > 0)
-                m_position[axis] = std::floor(m_position[axis] + m_size[axis]) - m_size[axis];
+                m_position[axis]
+                    = std::floor(m_position[axis] + m_size[axis]) - m_size[axis];
 
             // colliding on the left? push right
             // colliding on down? push up
             // colliding at the back? push front
-            else m_position[axis] = std::ceil(m_position[axis]);
+            else
+                m_position[axis] = std::ceil(m_position[axis]);
 
             // undo movement entirely if we're still colliding
-            if (check_collision()) m_position[axis] -= m_vel[axis];
+            if (check_collision())
+                m_position[axis] -= m_vel[axis];
 
             m_vel[axis] = 0;
         }

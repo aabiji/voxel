@@ -1,0 +1,5 @@
+BasedOnStyle: WebKit
+ColumnLimit: 90
+BreakConstructorInitializers: BeforeColon
+PackConstructorInitializers: CurrentLine
+AllowAllConstructorInitializersOnNextLine: true

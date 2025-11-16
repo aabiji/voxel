@@ -4,16 +4,14 @@
 
 #include "chunk.h"
 
-struct VoxelLocation
-{
+struct VoxelLocation {
     float chunk_x, chunk_z;
     float voxel_x, voxel_z;
 };
 
-class Terrain
-{
+class Terrain {
 public:
-    Terrain() {}
+    Terrain() { }
 
     float surface_y(float x, float z)
     {
@@ -55,6 +53,7 @@ public:
         for (const auto& [_, chunk] : m_chunks)
             chunk->render();
     }
+
 private:
     VoxelLocation voxel_location(float x, float z)
     {
@@ -63,8 +62,7 @@ private:
         float voxel_x = floor(x - chunk_x * CHUNK_SIZE);
         float voxel_z = floor(z - chunk_z * CHUNK_SIZE);
         return {
-            .chunk_x = chunk_x, .chunk_z = chunk_z,
-            .voxel_x = voxel_x, .voxel_z = voxel_z
+            .chunk_x = chunk_x, .chunk_z = chunk_z, .voxel_x = voxel_x, .voxel_z = voxel_z
         };
     }
 

@@ -15,7 +15,8 @@ Engine::Engine(int window_width, int window_height)
 
     glViewport(0, 0, window_width, window_height);
     float aspect = float(window_width) / float(window_height);
-    m_projection = Matrix4::projection(0.1f, 100.0f, 45 * (M_PI / 180.0f), aspect);
+    m_projection
+        = Matrix4::projection(0.1f, 100.0f, 45 * (M_PI / 180.0f), aspect);
     m_camera_disabled = false;
 
     m_terrain.load_more_chunks(0, 0);
@@ -26,7 +27,8 @@ void Engine::move_player(Direction direction) { m_player.move(direction); }
 
 void Engine::handle_mouse_move(float x, float y)
 {
-    if (!m_camera_disabled) m_player.rotate(x, y);
+    if (!m_camera_disabled)
+        m_player.rotate(x, y);
 }
 
 void Engine::handle_resize(int width, int height)
