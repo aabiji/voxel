@@ -1,11 +1,12 @@
 #pragma once
 
+#include "framebuffer.h"
 #include "player.h"
 #include "spritesheet.h"
 
 class Engine {
 public:
-    Engine(int window_width, int window_height);
+    Engine(float window_width, float window_height);
 
     void render();
     void move_player(Direction direction);
@@ -15,11 +16,16 @@ public:
     void disable_camera_movement() { m_camera_disabled = true; }
 
 private:
-    Matrix4 m_projection;
+    void load_assets();
+
     bool m_camera_disabled;
+    Vec2 m_window_size;
 
     Player m_player;
-    Spritesheet m_spritesheet;
-    ShaderManager m_shaders;
     Terrain m_terrain;
+    Spritesheet m_spritesheet;
+
+    Matrix4 m_projection;
+    Framebuffer m_frame;
+    ShaderManager m_shaders;
 };

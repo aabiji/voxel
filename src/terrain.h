@@ -31,6 +31,32 @@ public:
             : false;
     }
 
+    // check if an object is colliding with any voxels
+    bool collision(Vec3 position, Vec3 size, float ground_offset)
+    {
+        const float epsilon = 0.001; // prevents edge alignment bugs
+
+        int min_x = std::floor(position.x);
+        int max_x = std::floor(position.x + size.x - epsilon);
+
+        int min_y = std::floor(position.y + ground_offset);
+        int max_y = std::floor(position.y + size.y + ground_offset - epsilon);
+
+        int min_z = std::floor(position.z);
+        int max_z = std::floor(position.z + size.z - epsilon);
+
+        for (int x = min_x; x <= max_x; x++) {
+            for (int y = min_y; y <= max_y; y++) {
+                for (int z = min_z; z <= max_z; z++) {
+                    if (voxel_exists(x, y, z))
+                        return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     void load_more_chunks(float pos_x, float pos_z)
     {
         // create new chunks around the current chunk continuously

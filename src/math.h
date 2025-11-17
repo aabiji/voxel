@@ -69,50 +69,6 @@ struct Vec3Hasher {
     }
 };
 
-struct Matrix4 {
-    Matrix4() // default to an identity matrix
-    {
-        for (int i = 0; i < 16; i++)
-            values[i] = 0.0f;
-        values[0] = values[5] = values[10] = values[15] = 1.0f;
-    }
-
-    Matrix4 operator*(const Matrix4& m) const
-    {
-        // dot product using column major ordering
-        Matrix4 result;
-        for (int col = 0; col < 4; ++col) {
-            for (int row = 0; row < 4; ++row) {
-                result.values[col * 4 + row] = values[0 * 4 + row] * m.values[col * 4 + 0]
-                    + values[1 * 4 + row] * m.values[col * 4 + 1]
-                    + values[2 * 4 + row] * m.values[col * 4 + 2]
-                    + values[3 * 4 + row] * m.values[col * 4 + 3];
-            }
-        }
-        return result;
-    }
-
-    // Compute the projection matrix:
-    // near is the distance to the near plane
-    // far is the distance to the far plane
-    // fov is the field of view of the frustrum in radians
-    // aspect is the viewport's aspect ratio
-    static Matrix4 projection(float near, float far, float fov, float aspect)
-    {
-        float tan_half = tan(fov / 2.0f);
-        Matrix4 m;
-        m.values[0] = 1.0f / (aspect * tan_half);
-        m.values[5] = 1.0f / tan_half;
-        m.values[10] = -(far + near) / (far - near);
-        m.values[11] = -1.0f;
-        m.values[14] = -(2.0f * far * near) / (far - near);
-        m.values[15] = 0.0f;
-        return m;
-    }
-
-    float values[16];
-};
-
 struct Quaternion {
     Quaternion() : x(0), y(0), z(0), w(0) { }
 
@@ -139,4 +95,52 @@ struct Quaternion {
     }
 
     float x, y, z, w;
+};
+
+struct Matrix4 {
+    Matrix4() // default to an identity matrix
+    {
+        for (int i = 0; i < 16; i++)
+            m[i] = 0.0f;
+        m[0] = m[5] = m[10] = m[15] = 1.0f;
+        m_valid = true;
+    }
+
+    Matrix4(bool valid) : m_valid(valid) { }
+
+    Matrix4 operator*(const Matrix4& b) const
+    {
+        // dot product using column major ordering
+        Matrix4 result;
+        for (int col = 0; col < 4; ++col) {
+            for (int row = 0; row < 4; ++row) {
+                result.m[col * 4 + row] = m[0 * 4 + row] * b.m[col * 4 + 0]
+                    + m[1 * 4 + row] * b.m[col * 4 + 1]
+                    + m[2 * 4 + row] * b.m[col * 4 + 2]
+                    + m[3 * 4 + row] * b.m[col * 4 + 3];
+            }
+        }
+        return result;
+    }
+
+    // Compute the projection matrix:
+    // near is the distance to the near plane
+    // far is the distance to the far plane
+    // fov is the field of view of the frustrum in radians
+    // aspect is the viewport's aspect ratio
+    static Matrix4 projection(float near, float far, float fov, float aspect)
+    {
+        float tan_half = tan(fov / 2.0f);
+        Matrix4 m;
+        m.m[0] = 1.0f / (aspect * tan_half);
+        m.m[5] = 1.0f / tan_half;
+        m.m[10] = -(far + near) / (far - near);
+        m.m[11] = -1.0f;
+        m.m[14] = -(2.0f * far * near) / (far - near);
+        m.m[15] = 0.0f;
+        return m;
+    }
+
+    float m[16];
+    bool m_valid;
 };

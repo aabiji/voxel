@@ -1,7 +1,6 @@
 #pragma once
 
 #include "math.h"
-#include "utils.h"
 
 class Camera {
 public:
@@ -50,25 +49,25 @@ public:
         Vec3 up = Vec3::cross(right, f);
 
         Matrix4 m;
-        m.values[0] = right.x;
-        m.values[1] = up.x;
-        m.values[2] = -f.x;
-        m.values[3] = 0.0f;
+        m.m[0] = right.x;
+        m.m[1] = up.x;
+        m.m[2] = -f.x;
+        m.m[3] = 0.0f;
 
-        m.values[4] = right.y;
-        m.values[5] = up.y;
-        m.values[6] = -f.y;
-        m.values[7] = 0.0f;
+        m.m[4] = right.y;
+        m.m[5] = up.y;
+        m.m[6] = -f.y;
+        m.m[7] = 0.0f;
 
-        m.values[8] = right.z;
-        m.values[9] = up.z;
-        m.values[10] = -f.z;
-        m.values[11] = 0.0f;
+        m.m[8] = right.z;
+        m.m[9] = up.z;
+        m.m[10] = -f.z;
+        m.m[11] = 0.0f;
 
-        m.values[12] = -Vec3::dot(right, position);
-        m.values[13] = -Vec3::dot(up, position);
-        m.values[14] = Vec3::dot(f, position);
-        m.values[15] = 1.0f;
+        m.m[12] = -Vec3::dot(right, position);
+        m.m[13] = -Vec3::dot(up, position);
+        m.m[14] = Vec3::dot(f, position);
+        m.m[15] = 1.0f;
         return m;
     }
 

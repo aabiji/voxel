@@ -16,7 +16,6 @@ public:
     Matrix4 view_matrix() { return m_camera.look_at(); }
 
 private:
-    bool check_collision();
     void update_position();
     float apply_physics(float value, float min, float max, bool is_accel);
 

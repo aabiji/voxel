@@ -38,7 +38,7 @@ void ShaderManager::set_int(std::string name, const int value)
 void ShaderManager::set_matrix4(std::string name, const Matrix4& value)
 {
     int location = glGetUniformLocation(m_program, name.c_str());
-    glUniformMatrix4fv(location, 1, GL_FALSE, value.values);
+    glUniformMatrix4fv(location, 1, GL_FALSE, value.m);
 }
 
 ResultOr<std::string> read_file(std::string& path)

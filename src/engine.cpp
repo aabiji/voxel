@@ -2,10 +2,10 @@
 
 #include "engine.h"
 
-Engine::Engine(int window_width, int window_height)
+Engine::Engine(float window_width, float window_height)
 {
-    auto result = m_shaders.load(
-        "assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
+    auto result
+        = m_shaders.load("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
     if (result.is_err())
         log(Level::fatal, result.error());
 
@@ -14,9 +14,9 @@ Engine::Engine(int window_width, int window_height)
         log(Level::fatal, result.error());
 
     glViewport(0, 0, window_width, window_height);
-    float aspect = float(window_width) / float(window_height);
-    m_projection
-        = Matrix4::projection(0.1f, 100.0f, 45 * (M_PI / 180.0f), aspect);
+    m_projection = Matrix4::projection(
+        0.1f, 100.0f, 45 * (M_PI / 180.0f), window_width / window_height);
+    m_window_size = Vec2(window_width, window_height);
     m_camera_disabled = false;
 
     m_terrain.load_more_chunks(0, 0);
@@ -36,6 +36,7 @@ void Engine::handle_resize(int width, int height)
     glViewport(0, 0, width, height);
     float aspect = float(width) / float(height);
     m_projection = Matrix4::projection(0.1, 100.0, 45 * (M_PI / 180), aspect);
+    m_window_size = Vec2(width, height);
 }
 
 void Engine::render()

@@ -67,38 +67,12 @@ float Player::apply_physics(float value, float min, float max, bool is_accel)
 }
 
 // check if the player's bounding box is overlapping any voxels
-bool Player::check_collision()
-{
-    const float epsilon = 0.001; // prevents edge alignment bugs
-
-    int min_x = std::floor(m_position.x);
-    int max_x = std::floor(m_position.x + m_size.x - epsilon);
-
-    // using y + 1 to ignore collisions with the ground (those are handled separately)
-    int min_y = std::floor(m_position.y + 1);
-    int max_y = std::floor(m_position.y + m_size.y + 1 - epsilon);
-
-    int min_z = std::floor(m_position.z);
-    int max_z = std::floor(m_position.z + m_size.z - epsilon);
-
-    for (int x = min_x; x <= max_x; x++) {
-        for (int y = min_y; y <= max_y; y++) {
-            for (int z = min_z; z <= max_z; z++) {
-                if (m_terrain->voxel_exists(x, y, z))
-                    return true;
-            }
-        }
-    }
-
-    return false;
-}
-
 // update the player's position whilst resolving any possible coliisions on each axis
 void Player::update_position()
 {
     for (int axis = 0; axis < 3; axis++) {
         m_position[axis] += m_vel[axis];
-        if (check_collision()) {
+        if (m_terrain->collision(m_position, m_size, 1)) {
             // colliding on the right? push left
             // colliding on top? push down
             // colliding at the front? push back
@@ -113,7 +87,7 @@ void Player::update_position()
                 m_position[axis] = std::ceil(m_position[axis]);
 
             // undo movement entirely if we're still colliding
-            if (check_collision())
+            if (m_terrain->collision(m_position, m_size, 1))
                 m_position[axis] -= m_vel[axis];
 
             m_vel[axis] = 0;
