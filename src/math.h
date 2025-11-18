@@ -141,6 +141,64 @@ struct Matrix4 {
         return m;
     }
 
+    // column-major matrix inverse, yes this is a mess
+    Matrix4 inverse() const
+    {
+        Matrix4 out;
+
+        // access helper for column-major: a[col * 4 + row]
+        auto at = [&](int col, int row) -> float { return m[col * 4 + row]; };
+
+        auto s0 = at(0, 0) * at(1, 1) - at(1, 0) * at(0, 1);
+        auto s1 = at(0, 0) * at(1, 2) - at(1, 0) * at(0, 2);
+        auto s2 = at(0, 0) * at(1, 3) - at(1, 0) * at(0, 3);
+        auto s3 = at(0, 1) * at(1, 2) - at(1, 1) * at(0, 2);
+        auto s4 = at(0, 1) * at(1, 3) - at(1, 1) * at(0, 3);
+        auto s5 = at(0, 2) * at(1, 3) - at(1, 2) * at(0, 3);
+
+        auto c5 = at(2, 2) * at(3, 3) - at(3, 2) * at(2, 3);
+        auto c4 = at(2, 1) * at(3, 3) - at(3, 1) * at(2, 3);
+        auto c3 = at(2, 1) * at(3, 2) - at(3, 1) * at(2, 2);
+        auto c2 = at(2, 0) * at(3, 3) - at(3, 0) * at(2, 3);
+        auto c1 = at(2, 0) * at(3, 2) - at(3, 0) * at(2, 2);
+        auto c0 = at(2, 0) * at(3, 1) - at(3, 0) * at(2, 1);
+
+        auto det = s0 * c5 - s1 * c4 + s2 * c3 + s3 * c2 - s4 * c1 + s5 * c0;
+
+        if (det == 0.0) {
+            out.m_valid = false;
+            return out;
+        }
+
+        auto invdet = 1.0 / det;
+
+        // column 0
+        out.m[0] = (at(1, 1) * c5 - at(1, 2) * c4 + at(1, 3) * c3) * invdet;
+        out.m[1] = (-at(1, 0) * c5 + at(1, 2) * c2 - at(1, 3) * c1) * invdet;
+        out.m[2] = (at(1, 0) * c4 - at(1, 1) * c2 + at(1, 3) * c0) * invdet;
+        out.m[3] = (-at(1, 0) * c3 + at(1, 1) * c1 - at(1, 2) * c0) * invdet;
+
+        // column 1
+        out.m[4] = (-at(0, 1) * c5 + at(0, 2) * c4 - at(0, 3) * c3) * invdet;
+        out.m[5] = (at(0, 0) * c5 - at(0, 2) * c2 + at(0, 3) * c1) * invdet;
+        out.m[6] = (-at(0, 0) * c4 + at(0, 1) * c2 - at(0, 3) * c0) * invdet;
+        out.m[7] = (at(0, 0) * c3 - at(0, 1) * c1 + at(0, 2) * c0) * invdet;
+
+        // column 2
+        out.m[8] = (at(3, 1) * s5 - at(3, 2) * s4 + at(3, 3) * s3) * invdet;
+        out.m[9] = (-at(3, 0) * s5 + at(3, 2) * s2 - at(3, 3) * s1) * invdet;
+        out.m[10] = (at(3, 0) * s4 - at(3, 1) * s2 + at(3, 3) * s0) * invdet;
+        out.m[11] = (-at(3, 0) * s3 + at(3, 1) * s1 - at(3, 2) * s0) * invdet;
+
+        // column 3
+        out.m[12] = (-at(2, 1) * s5 + at(2, 2) * s4 - at(2, 3) * s3) * invdet;
+        out.m[13] = (at(2, 0) * s5 - at(2, 2) * s2 + at(2, 3) * s1) * invdet;
+        out.m[14] = (-at(2, 0) * s4 + at(2, 1) * s2 - at(2, 3) * s0) * invdet;
+        out.m[15] = (at(2, 0) * s3 - at(2, 1) * s1 + at(2, 2) * s0) * invdet;
+
+        return out;
+    }
+
     float m[16];
     bool m_valid;
 };

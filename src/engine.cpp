@@ -41,14 +41,14 @@ void Engine::handle_resize(int width, int height)
 
 void Engine::render()
 {
-    Vec3 p = m_player.get_position();
+    Vec3 p = m_player.position();
     m_terrain.load_more_chunks(p.x, p.z);
     m_player.update();
 
     m_shaders.use();
     m_shaders.set_matrix4("projection", m_projection);
     m_shaders.set_matrix4("view", m_player.view_matrix());
-    m_shaders.set_vec3("selected_world_pos", Vec3(floor(p.x), floor(p.y), floor(p.z)));
+    m_shaders.set_vec3("selected_world_pos", m_player.selected_voxel_position());
 
     m_spritesheet.bind(m_shaders, 0);
     m_terrain.render();

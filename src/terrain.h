@@ -13,6 +13,17 @@ class Terrain {
 public:
     Terrain() { }
 
+    VoxelLocation voxel_location(float x, float z)
+    {
+        float chunk_x = floor(x / float(CHUNK_SIZE));
+        float chunk_z = floor(z / float(CHUNK_SIZE));
+        float voxel_x = floor(x - chunk_x * CHUNK_SIZE);
+        float voxel_z = floor(z - chunk_z * CHUNK_SIZE);
+        return {
+            .chunk_x = chunk_x, .chunk_z = chunk_z, .voxel_x = voxel_x, .voxel_z = voxel_z
+        };
+    }
+
     float surface_y(float x, float z)
     {
         VoxelLocation l = voxel_location(x, z);
@@ -81,16 +92,5 @@ public:
     }
 
 private:
-    VoxelLocation voxel_location(float x, float z)
-    {
-        float chunk_x = floor(x / float(CHUNK_SIZE));
-        float chunk_z = floor(z / float(CHUNK_SIZE));
-        float voxel_x = floor(x - chunk_x * CHUNK_SIZE);
-        float voxel_z = floor(z - chunk_z * CHUNK_SIZE);
-        return {
-            .chunk_x = chunk_x, .chunk_z = chunk_z, .voxel_x = voxel_x, .voxel_z = voxel_z
-        };
-    }
-
     std::unordered_map<Vec3, std::shared_ptr<Chunk>, Vec3Hasher> m_chunks;
 };

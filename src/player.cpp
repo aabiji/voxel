@@ -14,6 +14,9 @@ void Player::init(Terrain* terrain)
     m_speed = 0.15;
     m_max_jump_height = 1.5;
 
+    m_selected_voxel = Vec3(0, 0, 0);
+    m_view_distance = 10;
+
     m_camera.position = Vec3(m_position.x, m_position.y + m_size.y, m_position.z);
     m_terrain = terrain;
 }
@@ -22,11 +25,13 @@ void Player::move(Direction direction)
 {
     Vec3 front = m_camera.front;
     front.y = 0;
-    front = front.norm();
+    // avoid potential NaN caused by dividing with what's essentially 0
+    front = front.length() > 0.001 ? front.norm() : Vec3(0, 0, -1);
 
     Vec3 right = Vec3::cross(m_camera.front, m_camera.up);
     right.y = 0;
-    right = right.norm();
+    // avoid potential NaN caused by dividing with what's essentially 0
+    right = right.length() > 0.001 ? right.norm() : Vec3(1, 0, 0);
 
     float surface_y = m_terrain->surface_y(m_position.x, m_position.z);
     bool on_ground = m_position.y <= surface_y + 1.001;
@@ -95,6 +100,26 @@ void Player::update_position()
     }
 }
 
+void Player::find_selected_voxel()
+{
+    // TODO: debug this!
+    // get the voxel the player's currently looking at:
+    // basically just cast a ray in the player's viewing
+    // direction and sample it in steps
+    float step = 0.5;
+    float steps = m_view_distance / step;
+    for (int i = 1; i <= steps; i++) {
+        Vec3 p = m_position + m_camera.front * (i * step);
+        if (m_terrain->voxel_exists(p.x, p.y, p.z)) {
+            VoxelLocation l = m_terrain->voxel_location(p.x, p.z);
+            float x = l.chunk_x * CHUNK_SIZE + l.voxel_x;
+            float z = l.chunk_z * CHUNK_SIZE + l.voxel_z;
+            m_selected_voxel = Vec3(x, std::floor(p.y), z);
+            break;
+        }
+    }
+}
+
 void Player::update()
 {
     m_vel += m_accel;
@@ -107,4 +132,6 @@ void Player::update()
     m_vel.z = apply_physics(m_vel.z, 0.1, 0.15, false);
 
     m_camera.position = Vec3(m_position.x, m_position.y + m_size.y, m_position.z);
+
+    find_selected_voxel();
 }
