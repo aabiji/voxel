@@ -6,7 +6,7 @@ void Player::init(Terrain* terrain)
 {
     float mid = float(CHUNK_SIZE) / 2;
     m_position = Vec3(mid, terrain->surface_y(mid, mid), mid);
-    m_size = Vec3(1, 2, 1);
+    m_size = Vec3(1, 3, 1);
 
     m_vel = Vec3(0.0, 0, 0);
     m_accel = Vec3(0, -0.15, 0);

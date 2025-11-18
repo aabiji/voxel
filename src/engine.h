@@ -1,6 +1,5 @@
 #pragma once
 
-#include "framebuffer.h"
 #include "player.h"
 #include "spritesheet.h"
 
@@ -26,6 +25,5 @@ private:
     Spritesheet m_spritesheet;
 
     Matrix4 m_projection;
-    Framebuffer m_frame;
     ShaderManager m_shaders;
 };

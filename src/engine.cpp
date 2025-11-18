@@ -48,6 +48,8 @@ void Engine::render()
     m_shaders.use();
     m_shaders.set_matrix4("projection", m_projection);
     m_shaders.set_matrix4("view", m_player.view_matrix());
+    m_shaders.set_vec3("selected_world_pos", Vec3(floor(p.x), floor(p.y), floor(p.z)));
+
     m_spritesheet.bind(m_shaders, 0);
     m_terrain.render();
 }

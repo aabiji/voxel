@@ -105,11 +105,15 @@ void Chunk::init_buffers()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(unsigned int),
         m_indices.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glVertexAttribPointer(
+        0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, vx));
     glEnableVertexAttribArray(0); // position
     glVertexAttribPointer(
         1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, u));
     glEnableVertexAttribArray(1); // texture coordinate
+    glVertexAttribPointer(
+        2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, wx));
+    glEnableVertexAttribArray(2); // voxel world position
 
     m_num_indices = m_indices.size();
     m_indices.clear();
@@ -124,6 +128,8 @@ void Chunk::compute_mesh()
     int quad_indices[] = { 0, 1, 2, 0, 2, 3 };
 
     for (const auto& [p, _] : m_voxels) {
+        Vec3 abs_pos = m_position + p;
+
         for (const auto& [face, vertices] : voxel_faces) {
             // computing mesh bottom up
             Vec3 face_position = Vec3(p.x + face.x, p.y + face.y, p.z + face.z);
@@ -132,15 +138,17 @@ void Chunk::compute_mesh()
                 unsigned int base_index = m_vertices.size();
 
                 for (const Vertex v : vertices) {
-                    Vertex modified = v;
-                    // apply translation
-                    modified.x += m_position.x + p.x;
-                    modified.y += m_position.y + p.y;
-                    modified.z += m_position.z + p.z;
-                    // only use grass-side sprite for top layer voxels
-                    if (p.y != 0 && v.w == 0)
-                        modified.w = 2;
-                    m_vertices.push_back(modified);
+                    m_vertices.push_back({ // clang-format off
+                        // apply translattion
+                         v.vx + abs_pos.x,
+                         v.vy + abs_pos.y,
+                         v.vz + abs_pos.z,
+                         v.u,
+                         v.v,
+                         // only use grass-side sprite for top layer voxels
+                         p.y != 0 && v.w == 0 ? 2 : v.w,
+                         abs_pos.x, abs_pos.y, abs_pos.z
+                    });
                 }
 
                 // indices for the quad
