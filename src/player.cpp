@@ -1,6 +1,7 @@
 #include "player.h"
 #include "chunk.h"
 #include "terrain.h"
+#include <cmath>
 
 void Player::init(Terrain* terrain)
 {
@@ -13,10 +14,9 @@ void Player::init(Terrain* terrain)
     m_friction = 0.2;
     m_speed = 0.15;
     m_max_jump_height = 1.5;
+    m_max_select_distance = 15.0;
 
     m_selected_voxel = Vec3(0, 0, 0);
-    m_view_distance = 10;
-
     m_camera.position = Vec3(m_position.x, m_position.y + m_size.y, m_position.z);
     m_terrain = terrain;
 }
@@ -100,22 +100,57 @@ void Player::update_position()
     }
 }
 
+// find the object that the player is looking at by casting a ray from The
+// camera and using the digital differential analyzer algorithm to step along it
 void Player::find_selected_voxel()
 {
-    // TODO: debug this!
-    // get the voxel the player's currently looking at:
-    // basically just cast a ray in the player's viewing
-    // direction and sample it in steps
-    float step = 0.5;
-    float steps = m_view_distance / step;
-    for (int i = 1; i <= steps; i++) {
-        Vec3 p = m_position + m_camera.front * (i * step);
-        if (m_terrain->voxel_exists(p.x, p.y, p.z)) {
-            VoxelLocation l = m_terrain->voxel_location(p.x, p.z);
-            float x = l.chunk_x * CHUNK_SIZE + l.voxel_x;
-            float z = l.chunk_z * CHUNK_SIZE + l.voxel_z;
-            m_selected_voxel = Vec3(x, std::floor(p.y), z);
+    Vec3 start = Vec3(m_position.x, m_position.y + m_size.y, m_position.z);
+    Vec3 direction = m_camera.front.norm();
+
+    // current voxel position
+    int x = std::floor(start.x);
+    int y = std::floor(start.y);
+    int z = std::floor(start.z);
+
+    // step direction
+    int step_x = direction.x > 0 ? 1 : -1;
+    int step_y = direction.y > 0 ? 1 : -1;
+    int step_z = direction.z > 0 ? 1 : -1;
+
+    // distance to the next voxel on each axis
+    float t_max_x = direction.x != 0 ? (x + (step_x > 0 ? 1 : 0) - start.x) / direction.x
+                                     : INFINITY;
+    float t_max_y = direction.y != 0 ? (y + (step_y > 0 ? 1 : 0) - start.y) / direction.y
+                                     : INFINITY;
+    float t_max_z = direction.z != 0 ? (z + (step_z > 0 ? 1 : 0) - start.z) / direction.z
+                                     : INFINITY;
+
+    // distance along ray to move one voxel on each axis
+    float t_delta_x = direction.x != 0 ? std::abs(1.0 / direction.x) : INFINITY;
+    float t_delta_y = direction.y != 0 ? std::abs(1.0 / direction.y) : INFINITY;
+    float t_delta_z = direction.z != 0 ? std::abs(1.0 / direction.z) : INFINITY;
+
+    while (true) {
+        if (m_terrain->voxel_exists(x, y, z)) {
+            m_selected_voxel = Vec3(x, y, z);
             break;
+        }
+
+        // find the closest boundary
+        float t_max = std::min(std::min(t_max_x, t_max_y), t_max_z);
+        if (t_max > m_max_select_distance)
+            break;
+
+        // step to the next voxel
+        if (t_max_x == t_max) {
+            x += step_x;
+            t_max_x += t_delta_x;
+        } else if (t_max_y == t_max) {
+            y += step_y;
+            t_max_y += t_delta_y;
+        } else {
+            z += step_z;
+            t_max_z += t_delta_z;
         }
     }
 }

@@ -12,7 +12,7 @@ out vec4 fragment_color;
 void main()
 {
     // inner or outer edge
-    float threshold = 0.01;
+    float threshold = 0.02;
     bool is_edge = min(uv.x, uv.y) < threshold || max(uv.x, uv.y) > (1.0 - threshold);
     bool highlight = is_edge && current_world_pos == selected_world_pos;
     if (highlight)

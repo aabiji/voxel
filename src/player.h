@@ -29,7 +29,7 @@ private:
     Vec3 m_position;
 
     Vec3 m_selected_voxel;
-    float m_view_distance;
+    float m_max_select_distance;
 
     Camera m_camera;
     Terrain* m_terrain;
