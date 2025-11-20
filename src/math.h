@@ -45,6 +45,8 @@ struct Vec3 {
 
     float length() const { return std::sqrt(x * x + y * y + z * z); }
 
+    Vec3 floor() const { return Vec3(std::floor(x), std::floor(y), std::floor(z)); }
+
     Vec3 norm() const
     {
         float len = length();

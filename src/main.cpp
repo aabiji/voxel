@@ -17,6 +17,13 @@ void mouse_move_callback(GLFWwindow* window, double xpos, double ypos)
     engine->handle_mouse_move(xpos, ypos);
 }
 
+void mouse_click_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    Engine* engine = static_cast<Engine*>(glfwGetWindowUserPointer(window));
+    if (action == GLFW_RELEASE)
+        engine->handle_mouse_click(button == GLFW_MOUSE_BUTTON_LEFT);
+}
+
 void keybinding_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     Engine* engine = static_cast<Engine*>(glfwGetWindowUserPointer(window));
@@ -139,6 +146,7 @@ int main()
     glfwSetCursorPosCallback(window, mouse_move_callback);
     glfwSetWindowSizeCallback(window, resize_callback);
     glfwSetKeyCallback(window, keybinding_callback);
+    glfwSetMouseButtonCallback(window, mouse_click_callback);
     glfwSwapInterval(1);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);

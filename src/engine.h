@@ -12,6 +12,7 @@ public:
 
     void handle_resize(int width, int height);
     void handle_mouse_move(float x, float y);
+    void handle_mouse_click(bool left_click);
     void disable_camera_movement() { m_camera_disabled = true; }
 
 private:

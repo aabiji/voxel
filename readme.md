@@ -7,13 +7,13 @@ roadmap:
 - Player interaction
     [ ] Place/remove blocks
     [ ] Place different block types (also things like flowers)
-    [ ] Highlight the current block the player's aiming at
+    [x] Highlight the current block the player's aiming at
 - Phyiscs
-    [ ] Player movement, jumping (with gravity(
-    [ ] Collision detection with voxels
-    [ ] Offset's the camera's AABB box (since the player's head is higher than their body)
+    [x] Player movement, jumping (with gravity)
+    [x] Collision detection with voxels
+    [x] Offset's the camera's AABB box (since the player's head is higher than their body)
 - Culling
-    [ ] Face culling: Don't show voxel faces that are occluded
+    [x] Face culling: Don't show voxel faces that are occluded
     [ ] Frustum culling: Only draw chunks and voxels that are actually visible
     [ ] Reduce mesh vertices for chunks that are far away
 - Lighting

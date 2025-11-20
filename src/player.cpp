@@ -14,9 +14,8 @@ void Player::init(Terrain* terrain)
     m_friction = 0.2;
     m_speed = 0.15;
     m_max_jump_height = 1.5;
-    m_max_select_distance = 15.0;
-
-    m_selected_voxel = Vec3(0, 0, 0);
+    m_selected_object
+        = { .position = Vec3(0, 0, 0), .selected = false, .max_select_distance = 15.0 };
     m_camera.position = Vec3(m_position.x, m_position.y + m_size.y, m_position.z);
     m_terrain = terrain;
 }
@@ -104,55 +103,50 @@ void Player::update_position()
 // camera and using the digital differential analyzer algorithm to step along it
 void Player::find_selected_voxel()
 {
-    Vec3 start = Vec3(m_position.x, m_position.y + m_size.y, m_position.z);
-    Vec3 direction = m_camera.front.norm();
-
-    // current voxel position
-    int x = std::floor(start.x);
-    int y = std::floor(start.y);
-    int z = std::floor(start.z);
-
-    // step direction
-    int step_x = direction.x > 0 ? 1 : -1;
-    int step_y = direction.y > 0 ? 1 : -1;
-    int step_z = direction.z > 0 ? 1 : -1;
+    // clang-format off
+    Vec3 d = m_camera.front.norm(); // viewing direction
+    Vec3 p = m_camera.position.floor(); // current voxel position
+    Vec3 step = Vec3(d.x > 0 ? 1 : -1, d.y > 0 ? 1 : -1, d.z > 0 ? 1 : -1);
 
     // distance to the next voxel on each axis
-    float t_max_x = direction.x != 0 ? (x + (step_x > 0 ? 1 : 0) - start.x) / direction.x
-                                     : INFINITY;
-    float t_max_y = direction.y != 0 ? (y + (step_y > 0 ? 1 : 0) - start.y) / direction.y
-                                     : INFINITY;
-    float t_max_z = direction.z != 0 ? (z + (step_z > 0 ? 1 : 0) - start.z) / direction.z
-                                     : INFINITY;
+    Vec3 t_max = Vec3(
+        d.x != 0 ? (p.x + (step.x > 0 ? 1 : 0) - p.x) / d.x : INFINITY,
+        d.y != 0 ? (p.y + (step.y > 0 ? 1 : 0) - p.y) / d.y : INFINITY,
+        d.z != 0 ? (p.z + (step.z > 0 ? 1 : 0) - p.z) / d.z : INFINITY
+    );
 
     // distance along ray to move one voxel on each axis
-    float t_delta_x = direction.x != 0 ? std::abs(1.0 / direction.x) : INFINITY;
-    float t_delta_y = direction.y != 0 ? std::abs(1.0 / direction.y) : INFINITY;
-    float t_delta_z = direction.z != 0 ? std::abs(1.0 / direction.z) : INFINITY;
+    Vec3 t_delta = Vec3(
+        d.x != 0 ? std::abs(1.0 / d.x) : INFINITY,
+        d.y != 0 ? std::abs(1.0 / d.y) : INFINITY,
+        d.z != 0 ? std::abs(1.0 / d.z) : INFINITY
+    );
 
     while (true) {
-        if (m_terrain->voxel_exists(x, y, z)) {
-            m_selected_voxel = Vec3(x, y, z);
-            break;
+        if (m_terrain->voxel_exists(p.x, p.y, p.z)) {
+            m_selected_object.position = p;
+            m_selected_object.selected = true;
+            return;
         }
 
         // find the closest boundary
-        float t_max = std::min(std::min(t_max_x, t_max_y), t_max_z);
-        if (t_max > m_max_select_distance)
-            break;
+        float distance = std::min(std::min(t_max.x, t_max.y), t_max.z);
+        if (distance > m_selected_object.max_select_distance) break;
 
         // step to the next voxel
-        if (t_max_x == t_max) {
-            x += step_x;
-            t_max_x += t_delta_x;
-        } else if (t_max_y == t_max) {
-            y += step_y;
-            t_max_y += t_delta_y;
+        if (t_max.x == distance) {
+            p.x += step.x;
+            t_max.x += t_delta.x;
+        } else if (t_max.y == distance) {
+            p.y += step.y;
+            t_max.y += t_delta.y;
         } else {
-            z += step_z;
-            t_max_z += t_delta_z;
+            p.z += step.z;
+            t_max.z += t_delta.z;
         }
     }
+
+    m_selected_object.selected = false;
 }
 
 void Player::update()
@@ -169,4 +163,12 @@ void Player::update()
     m_camera.position = Vec3(m_position.x, m_position.y + m_size.y, m_position.z);
 
     find_selected_voxel();
+}
+
+#include "utils.h"
+void Player::place_object()
+{
+    if (!m_selected_object.selected) return;
+    log("placing...");
+    // TODO: better alternatives to reconstructing the chunk mesh each time
 }

@@ -25,6 +25,12 @@ Engine::Engine(float window_width, float window_height)
 
 void Engine::move_player(Direction direction) { m_player.move(direction); }
 
+void Engine::handle_mouse_click(bool left_click)
+{
+    if (left_click)
+        m_player.place_object();
+}
+
 void Engine::handle_mouse_move(float x, float y)
 {
     if (!m_camera_disabled)
@@ -48,7 +54,7 @@ void Engine::render()
     m_shaders.use();
     m_shaders.set_matrix4("projection", m_projection);
     m_shaders.set_matrix4("view", m_player.view_matrix());
-    m_shaders.set_vec3("selected_world_pos", m_player.selected_voxel_position());
+    m_shaders.set_vec3("selected_world_pos", m_player.selected_object());
 
     m_spritesheet.bind(m_shaders, 0);
     m_terrain.render();
